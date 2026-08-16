@@ -1,0 +1,2109 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>听声译码——基于 music21 的高中音乐编程跨学科课程设计方案</title>
+<style>
+@font-face { font-family:'Outfit'; src:url('./_shared/fonts/Outfit-Regular.ttf') format('truetype'); font-weight:400; font-display:swap; }
+@font-face { font-family:'Outfit'; src:url('./_shared/fonts/Outfit-Bold.ttf') format('truetype'); font-weight:700; font-display:swap; }
+@font-face { font-family:'WorkSans'; src:url('./_shared/fonts/WorkSans-Regular.ttf') format('truetype'); font-weight:400; font-display:swap; }
+@font-face { font-family:'WorkSans'; src:url('./_shared/fonts/WorkSans-Bold.ttf') format('truetype'); font-weight:700; font-display:swap; }
+@font-face { font-family:'JetBrainsMono'; src:url('./_shared/fonts/JetBrainsMono-Regular.ttf') format('truetype'); font-weight:400; font-display:swap; }
+@font-face { font-family:'JetBrainsMono'; src:url('./_shared/fonts/JetBrainsMono-Bold.ttf') format('truetype'); font-weight:700; font-display:swap; }
+
+:root {
+  --bg: #FAF8F5;
+  --bg2: #FFFFFF;
+  --ink: #1A1A2E;
+  --muted: #5C6070;
+  --rule: #E2DFD9;
+  --accent: #2D3561;
+  --accent2: #C8953E;
+  --accent-light: #EEF0F7;
+  --accent2-light: #FBF5E9;
+  --teacher-bg: #EEF2FF;
+  --teacher-border: #6366A0;
+  --student-bg: #FFF8EC;
+  --student-border: #C8953E;
+  --design-bg: #F0F5F1;
+  --design-border: #5A8A6E;
+  --code-bg: #1E1E2E;
+  --code-ink: #E0E0F0;
+  --sidebar-w: 280px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body {
+  font-family:'WorkSans','Microsoft YaHei','PingFang SC','Noto Sans CJK SC',sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  line-height:1.8;
+  font-size:16px;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ===== Layout ===== */
+.page { display:flex; min-height:100vh; }
+.sidebar {
+  width:var(--sidebar-w);
+  background:var(--bg2);
+  border-right:1px solid var(--rule);
+  position:fixed;
+  top:0; left:0; bottom:0;
+  overflow-y:auto;
+  padding:1.5rem 0;
+  z-index:100;
+}
+.sidebar-title {
+  font-family:'Outfit','Microsoft YaHei',sans-serif;
+  font-size:0.95rem;
+  font-weight:700;
+  color:var(--accent);
+  padding:0 1.2rem 1rem;
+  border-bottom:1px solid var(--rule);
+  margin-bottom:0.8rem;
+  line-height:1.4;
+}
+.sidebar nav ol { list-style:none; padding:0 0.5rem; counter-reset:toc; }
+.sidebar nav li { counter-increment:toc; }
+.sidebar nav a {
+  display:block;
+  padding:0.4rem 0.7rem;
+  font-size:0.85rem;
+  color:var(--muted);
+  text-decoration:none;
+  border-radius:4px;
+  line-height:1.5;
+  transition:all .15s;
+}
+.sidebar nav a::before { content:counter(toc) ". "; color:var(--accent2); font-weight:700; font-size:0.78rem; }
+.sidebar nav a:hover { background:var(--accent-light); color:var(--accent); }
+.sidebar nav .toc-l2 { padding-left:1.5rem; font-size:0.8rem; }
+.sidebar nav .toc-l2::before { content:''; }
+.sidebar nav .toc-l3 { padding-left:2.5rem; font-size:0.76rem; }
+.sidebar nav .toc-l3::before { content:''; }
+.sidebar .toc-module {
+  font-family:'Outfit',sans-serif;
+  font-size:0.72rem;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  color:var(--accent2);
+  padding:0.8rem 1.2rem 0.3rem;
+}
+
+.main {
+  margin-left:var(--sidebar-w);
+  flex:1;
+  min-width:0;
+}
+.content {
+  max-width:900px;
+  margin:0 auto;
+  padding:3rem 2.5rem 5rem;
+}
+
+/* Mobile */
+.menu-toggle {
+  display:none;
+  position:fixed;
+  top:1rem; left:1rem;
+  z-index:200;
+  background:var(--accent);
+  color:#fff;
+  border:none;
+  border-radius:6px;
+  width:42px; height:42px;
+  font-size:1.3rem;
+  cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);
+}
+@media (max-width:1024px) {
+  .sidebar { transform:translateX(-100%); transition:transform .25s; }
+  .sidebar.open { transform:translateX(0); }
+  .main { margin-left:0; }
+  .menu-toggle { display:block; }
+  .content { padding:4rem 1.2rem 3rem; }
+}
+
+/* ===== Hero ===== */
+.hero {
+  background:linear-gradient(135deg, var(--accent) 0%, #3D4580 50%, #4A3560 100%);
+  color:#fff;
+  padding:4rem 2.5rem;
+  margin:-3rem -2.5rem 3rem;
+  position:relative;
+  overflow:hidden;
+}
+.hero::before {
+  content:'';
+  position:absolute;
+  top:-50%; right:-20%;
+  width:600px; height:600px;
+  background:radial-gradient(circle, rgba(200,149,62,.15) 0%, transparent 70%);
+  border-radius:50%;
+}
+.hero h1 {
+  font-family:'Outfit','Microsoft YaHei',sans-serif;
+  font-size:2.6rem;
+  font-weight:700;
+  line-height:1.25;
+  margin-bottom:0.8rem;
+  position:relative;
+}
+.hero .subtitle {
+  font-size:1.15rem;
+  opacity:0.9;
+  margin-bottom:1.5rem;
+  line-height:1.6;
+  position:relative;
+}
+.hero .meta {
+  display:flex;
+  flex-wrap:wrap;
+  gap:1.5rem;
+  font-size:0.9rem;
+  opacity:0.85;
+  position:relative;
+}
+.hero .meta span { display:flex; align-items:center; gap:0.4rem; }
+.hero .meta strong { color:var(--accent2); font-weight:700; }
+
+/* ===== Typography ===== */
+h2 {
+  font-family:'Outfit','Microsoft YaHei',sans-serif;
+  font-size:1.7rem;
+  font-weight:700;
+  color:var(--accent);
+  margin:3rem 0 1.2rem;
+  padding-bottom:0.5rem;
+  border-bottom:2px solid var(--accent);
+  scroll-margin-top:1.5rem;
+}
+h3 {
+  font-family:'Outfit','Microsoft YaHei',sans-serif;
+  font-size:1.25rem;
+  font-weight:700;
+  color:var(--ink);
+  margin:2rem 0 0.8rem;
+  scroll-margin-top:1.5rem;
+}
+h4 {
+  font-family:'Outfit','Microsoft YaHei',sans-serif;
+  font-size:1.05rem;
+  font-weight:700;
+  color:var(--accent);
+  margin:1.5rem 0 0.6rem;
+}
+p { margin-bottom:1rem; }
+a { color:var(--accent); }
+strong { font-weight:700; }
+ul, ol { margin:0.5rem 0 1rem 1.5rem; }
+li { margin-bottom:0.4rem; }
+
+/* ===== Tables ===== */
+.table-wrap {
+  overflow-x:auto;
+  overflow-y:auto;
+  max-height:600px;
+  margin:1.2rem 0;
+  border:1px solid var(--rule);
+  border-radius:6px;
+}
+table {
+  width:100%;
+  border-collapse:collapse;
+  font-size:0.9rem;
+  background:var(--bg2);
+}
+th {
+  background:var(--accent);
+  color:#fff;
+  font-weight:700;
+  text-align:left;
+  padding:0.7rem 0.9rem;
+  font-family:'Outfit','Microsoft YaHei',sans-serif;
+  font-size:0.85rem;
+  white-space:nowrap;
+  position:sticky;
+  top:0;
+}
+td {
+  padding:0.6rem 0.9rem;
+  border-bottom:1px solid var(--rule);
+  vertical-align:top;
+  line-height:1.6;
+}
+tr:nth-child(even) td { background:var(--bg); }
+tr:last-child td { border-bottom:none; }
+table .num { text-align:center; font-family:'JetBrainsMono',monospace; color:var(--accent2); font-weight:700; white-space:nowrap; }
+
+/* ===== Callout boxes ===== */
+.callout {
+  border-left:4px solid;
+  padding:1rem 1.2rem;
+  margin:1.2rem 0;
+  border-radius:0 6px 6px 0;
+  font-size:0.93rem;
+}
+.callout p:last-child { margin-bottom:0; }
+.callout-info { border-color:var(--accent); background:var(--accent-light); }
+.callout-warn { border-color:var(--accent2); background:var(--accent2-light); }
+.callout-quote { border-color:var(--design-border); background:var(--design-bg); font-style:italic; }
+
+/* ===== Task boxes (teacher/student/design) ===== */
+.task-box {
+  border-radius:8px;
+  padding:1.1rem 1.3rem;
+  margin:1rem 0;
+  border:1px solid;
+}
+.task-box h4 {
+  margin:0 0 0.6rem;
+  font-size:0.95rem;
+  display:flex;
+  align-items:center;
+  gap:0.5rem;
+}
+.task-box h4 .icon {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:24px; height:24px;
+  border-radius:50%;
+  font-size:0.75rem;
+  font-weight:700;
+  color:#fff;
+  flex-shrink:0;
+}
+.task-teacher { background:var(--teacher-bg); border-color:var(--teacher-border); }
+.task-teacher h4 { color:var(--teacher-border); }
+.task-teacher .icon { background:var(--teacher-border); }
+.task-student { background:var(--student-bg); border-color:var(--student-border); }
+.task-student h4 { color:var(--student-border); }
+.task-student .icon { background:var(--student-border); }
+.task-design { background:var(--design-bg); border-color:var(--design-border); }
+.task-design h4 { color:var(--design-border); }
+.task-design .icon { background:var(--design-border); }
+.task-box ol, .task-box ul { margin:0.3rem 0 0.3rem 1.2rem; }
+.task-box li { margin-bottom:0.35rem; font-size:0.92rem; line-height:1.7; }
+.task-box p { font-size:0.92rem; margin-bottom:0.5rem; }
+
+/* ===== Code ===== */
+code {
+  font-family:'JetBrainsMono',monospace;
+  background:rgba(45,53,97,.08);
+  padding:0.15em 0.4em;
+  border-radius:3px;
+  font-size:0.88em;
+  color:var(--accent);
+}
+pre {
+  background:var(--code-bg);
+  color:var(--code-ink);
+  padding:1rem 1.2rem;
+  border-radius:6px;
+  overflow-x:auto;
+  margin:1rem 0;
+  font-family:'JetBrainsMono',monospace;
+  font-size:0.85rem;
+  line-height:1.6;
+}
+pre code { background:none; padding:0; color:inherit; font-size:inherit; }
+.code-comment { color:#8B8BA0; }
+.code-keyword { color:#C792EA; }
+.code-string { color:#C3E88D; }
+.code-func { color:#82AAFF; }
+.code-num { color:#F78C6C; }
+
+/* ===== Lesson card ===== */
+.lesson {
+  background:var(--bg2);
+  border:1px solid var(--rule);
+  border-radius:10px;
+  padding:1.8rem 2rem;
+  margin:2rem 0;
+  box-shadow:0 1px 4px rgba(0,0,0,.04);
+  scroll-margin-top:1.5rem;
+}
+.lesson-header {
+  display:flex;
+  align-items:center;
+  gap:1rem;
+  margin-bottom:1.2rem;
+  padding-bottom:1rem;
+  border-bottom:2px solid var(--rule);
+}
+.lesson-num {
+  font-family:'Outfit',sans-serif;
+  font-size:2.2rem;
+  font-weight:700;
+  color:var(--accent2);
+  line-height:1;
+  min-width:60px;
+}
+.lesson-title { flex:1; }
+.lesson-title h3 {
+  margin:0;
+  font-size:1.35rem;
+  color:var(--accent);
+}
+.lesson-title .subtitle {
+  font-size:0.9rem;
+  color:var(--muted);
+  margin-top:0.2rem;
+}
+.lesson-meta {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:0.8rem;
+  margin-bottom:1rem;
+}
+.lesson-meta-item {
+  background:var(--bg);
+  padding:0.7rem 1rem;
+  border-radius:6px;
+  font-size:0.88rem;
+}
+.lesson-meta-item .label {
+  font-weight:700;
+  color:var(--accent);
+  font-size:0.8rem;
+  display:block;
+  margin-bottom:0.2rem;
+}
+.lesson-meta-item.full { grid-column:1/-1; }
+
+/* Module divider */
+.module-divider {
+  background:linear-gradient(135deg, var(--accent) 0%, #4A3560 100%);
+  color:#fff;
+  padding:2rem 2.5rem;
+  border-radius:10px;
+  margin:3rem 0 2rem;
+  position:relative;
+  overflow:hidden;
+}
+.module-divider::after {
+  content:'';
+  position:absolute;
+  bottom:-30px; right:-30px;
+  width:150px; height:150px;
+  background:radial-gradient(circle, rgba(200,149,62,.2), transparent 70%);
+  border-radius:50%;
+}
+.module-divider .module-label {
+  font-family:'Outfit',sans-serif;
+  font-size:0.8rem;
+  text-transform:uppercase;
+  letter-spacing:0.12em;
+  color:var(--accent2);
+  font-weight:700;
+  margin-bottom:0.5rem;
+}
+.module-divider h2 {
+  color:#fff;
+  border:none;
+  margin:0 0 0.5rem;
+  font-size:1.5rem;
+  padding:0;
+}
+.module-divider p { margin:0; opacity:0.9; font-size:0.95rem; position:relative; }
+
+/* Mapping highlight */
+.mapping-badge {
+  display:inline-block;
+  background:linear-gradient(135deg, var(--accent), #4A3560);
+  color:#fff;
+  padding:0.3rem 0.9rem;
+  border-radius:20px;
+  font-size:0.82rem;
+  font-weight:700;
+  margin:0.3rem 0;
+}
+
+/* Stats grid */
+.stats-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(160px,1fr));
+  gap:1rem;
+  margin:1.5rem 0;
+}
+.stat-card {
+  background:var(--bg2);
+  border:1px solid var(--rule);
+  border-radius:8px;
+  padding:1.2rem;
+  text-align:center;
+}
+.stat-card .num {
+  font-family:'Outfit',sans-serif;
+  font-size:2rem;
+  font-weight:700;
+  color:var(--accent2);
+  display:block;
+}
+.stat-card .label {
+  font-size:0.82rem;
+  color:var(--muted);
+  margin-top:0.3rem;
+}
+
+/* Platform cards */
+.platform-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(260px,1fr));
+  gap:1rem;
+  margin:1.5rem 0;
+}
+.platform-card {
+  background:var(--bg2);
+  border:1px solid var(--rule);
+  border-radius:8px;
+  padding:1.2rem;
+  border-top:3px solid var(--accent2);
+}
+.platform-card h4 {
+  margin:0 0 0.5rem;
+  color:var(--accent);
+  font-size:1rem;
+}
+.platform-card .origin {
+  font-size:0.78rem;
+  color:var(--accent2);
+  font-weight:700;
+  margin-bottom:0.5rem;
+}
+.platform-card p {
+  font-size:0.85rem;
+  color:var(--muted);
+  margin-bottom:0;
+  line-height:1.6;
+}
+
+/* Footer */
+footer {
+  border-top:2px solid var(--rule);
+  margin-top:4rem;
+  padding-top:2rem;
+}
+footer .sources ol { padding-left:1.2rem; font-size:0.82rem; color:var(--muted); }
+footer .sources li { margin-bottom:0.5rem; overflow-wrap:break-word; word-break:break-all; }
+footer .sources .src-title { color:var(--ink); word-break:normal; }
+footer .sources .src-url { display:block; margin-top:0.15rem; font-size:0.8rem; color:var(--accent); word-break:break-all; }
+footer .sources a { word-break:break-all; }
+
+/* Inline citations */
+sup a { color:var(--accent2); text-decoration:none; font-size:0.72em; font-weight:700; }
+sup a:hover { text-decoration:underline; }
+
+/* Print */
+@media print {
+  .sidebar, .menu-toggle { display:none; }
+  .main { margin-left:0; }
+  .content { padding:0; max-width:100%; }
+  .hero { margin:0 0 2rem; padding:2rem; }
+  .lesson { break-inside:avoid; box-shadow:none; }
+  pre { white-space:pre-wrap; word-wrap:break-word; }
+}
+</style>
+</head>
+<body>
+<button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">&#9776;</button>
+<div class="page">
+
+<aside class="sidebar">
+  <div class="sidebar-title">听声译码<br>计算机+音乐 跨学科课程方案</div>
+  <nav>
+    <ol>
+      <li><a href="#ch1">案例主题</a></li>
+      <li><a href="#ch2">学科范围</a></li>
+      <li><a href="#ch3">课时建议</a></li>
+      <li><a href="#ch4">适用对象</a></li>
+      <li><a href="#ch5">案例简介</a>
+        <ol>
+          <li><a href="#ch5-1" class="toc-l2">课标依据与现实需求</a></li>
+          <li><a href="#ch5-2" class="toc-l2">国际参照</a></li>
+        </ol>
+      </li>
+      <li><a href="#ch6">学情分析</a>
+        <ol>
+          <li><a href="#ch6-1" class="toc-l2">高中段（高二选修）</a></li>
+          <li><a href="#ch6-2" class="toc-l2">本科段（音乐学院通选）</a></li>
+          <li><a href="#ch6-3" class="toc-l2">两学段对比与策略</a></li>
+        </ol>
+      </li>
+      <li><a href="#ch7">教学重点</a></li>
+      <li><a href="#ch8">教学难点</a></li>
+      <li><a href="#ch9">教学工具</a></li>
+      <li><a href="#ch10">类比关系总表</a></li>
+      <li><a href="#ch11">16 节课详细设计</a></li>
+      <div class="toc-module">模块一 声音与计算的基础</div>
+      <li><a href="#lesson1" class="toc-l2">第1课 音高的数字本质</a></li>
+      <li><a href="#lesson2" class="toc-l2">第2课 节奏的时间结构</a></li>
+      <li><a href="#lesson3" class="toc-l2">第3课 图灵机与图灵完备</a></li>
+      <li><a href="#lesson4" class="toc-l2">第4课 曲式中的控制流</a></li>
+      <div class="toc-module">模块二 结构与并发</div>
+      <li><a href="#lesson5" class="toc-l2">第5课 乐句的封装</a></li>
+      <li><a href="#lesson6" class="toc-l2">第6课 多线程：单乐器双声部 ★</a></li>
+      <li><a href="#lesson7" class="toc-l2">第7课 多进程：乐团协作 ★</a></li>
+      <li><a href="#lesson8" class="toc-l2">第8课 音乐表情的参数化</a></li>
+      <li><a href="#lesson9" class="toc-l2">第9课 和弦的数据结构</a></li>
+      <div class="toc-module">模块三 算法的旋律</div>
+      <li><a href="#lesson10" class="toc-l2">第10课 模进的迭代算法</a></li>
+      <li><a href="#lesson11" class="toc-l2">第11课 卡农的递归结构 ★</a></li>
+      <li><a href="#lesson12" class="toc-l2">第12课 变奏的多态艺术 ★</a></li>
+      <li><a href="#lesson13" class="toc-l2">第13课 转调的空间映射</a></li>
+      <div class="toc-module">模块四 创作的计算</div>
+      <li><a href="#lesson14" class="toc-l2">第14课 风格建模与马尔可夫链 ★</a></li>
+      <li><a href="#lesson15" class="toc-l2">第15课 音色与配器 ★</a></li>
+      <li><a href="#lesson16" class="toc-l2">第16课 音乐会</a></li>
+      <li><a href="#ch12">课程结构总览</a></li>
+      <li><a href="#ch13">评价方式</a></li>
+      <li><a href="#ch14">跨学科设计亮点</a></li>
+      <li><a href="#ch15">教学实施建议</a></li>
+      <li><a href="#ch16">参考资源</a></li>
+    </ol>
+  </nav>
+</aside>
+
+<main class="main">
+<div class="content">
+
+<!-- ===== HERO ===== -->
+<header class="hero">
+  <h1>音乐是可感知的代码，代码是形式化的音乐</h1>
+  <p class="subtitle">基于 music21 的音乐与编程跨学科课程设计方案<br>高中选修 / 本科音乐学院通选课 · 16 课项目式学习</p>
+  <div class="meta">
+    <span><strong>教学对象</strong> 高二选修 / 本科通选</span>
+    <span><strong>单课时长</strong> 90 分钟</span>
+    <span><strong>核心技术</strong> Python + music21</span>
+    <span><strong>课程类型</strong> 跨学科项目式</span>
+  </div>
+  <p style="margin-top:12px;font-size:0.88rem;opacity:0.85;">标注 <strong>★</strong> 的课次为进阶内容，可视情况跳过。</p>
+</header>
+
+<!-- ===== 一、案例主题 ===== -->
+<h2 id="ch1">一、案例主题</h2>
+<p><strong>「听声译码：用 Python 创作音乐」</strong>——以 MIT 开发的 <code>music21</code> 工具包为载体，将乐理结构与程序结构一一对应，学生在「写代码—听音乐—改代码」的循环中同时学习音乐与编程。</p>
+<p>课程设<strong>高中选修</strong>与<strong>本科音乐学院通选</strong>两条轨道：高中段完成 10 节核心课，重点掌握数据化音乐表达、控制流、函数、并发模型与数据结构；本科段完成全部 16 课，在此基础上深入递归、高阶函数、马尔可夫链与面向对象编程。标注 <strong>*</strong> 的课次为本科进阶内容。</p>
+
+<!-- ===== 二、学科范围 ===== -->
+<h2 id="ch2">二、学科范围</h2>
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr><th style="width:120px">学科维度</th><th>具体内容</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>音乐</strong></td><td>音高与MIDI编码、音符时值与分数运算、拍号与节拍、音程与音阶（大调/小调/五声/教会调式）、和弦（三和弦/七和弦/转位/功能和声）、乐句与乐段结构、动机发展手法（模进/重复/变奏）、复调织体（卡农/赋格/对位法入门）、曲式（一段体/二段体/三段体/流行歌曲结构）、转调与移调、配器与音色、力度与速度表情、单乐器双声部协作、乐团合奏与指挥、音乐风格分析、计算音乐学入门</td></tr>
+    <tr><td><strong>计算机科学</strong></td><td>Python 基础回顾与深化、变量与数据类型、列表与列表推导式、字典与集合、控制流（if/for/while）、函数与参数传递、变量作用域、数据结构选择、递归与迭代、高阶函数与 lambda、map/filter 函数变换、图灵机与图灵完备、多线程（threading/共享内存/锁/竞态条件）、多进程（multiprocessing/消息传递/进程池/死锁）、并发与并行、字典建模与马尔可夫链、文件读写、类与对象（OOP）、模块与代码组织、调试与版本管理</td></tr>
+    <tr><td><strong>数学</strong></td><td>十二平均律的等比数列（频率计算）、音符时值的分数运算、音程的比例关系与半音数、和弦的组合数学、模12运算（音高空间）、概率分布与统计、线性插值（渐强渐弱）、马尔可夫链与条件概率、分形与递归结构</td></tr>
+    <tr><td><strong>艺术与人文</strong></td><td>音乐情感表达与审美判断、创作的成就感与自我认同、中外音乐文化理解、技术与艺术的关系、AI创作的伦理思考、设计思维与迭代优化、协作与表达</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ===== 三、课时建议 ===== -->
+<h2 id="ch3">三、课时建议</h2>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>学段</th><th>课程量</th><th>单课时长</th><th>排课方式</th><th>总学时</th></tr></thead>
+  <tbody>
+    <tr><td><strong>高中选修</strong></td><td>10 课</td><td>45 或 90 分钟/课（45 min × 2 节）</td><td>一周或两周一课</td><td>12</td></tr>
+    <tr><td><strong>本科通选</strong></td><td>16 课</td><td>90 分钟/课</td><td>每周一课</td><td>24</td></tr>
+  </tbody>
+</table>
+</div>
+<p>标准环节（90 min 制）：导入 10 min → 讲授 25 min → 实践 45 min → 总结 10 min。高中段分两堂 45 min 实施时，第一堂完成导入与讲授，第二堂完成实践与总结。</p>
+
+<!-- ===== 四、适用对象 ===== -->
+<h2 id="ch4">四、适用对象</h2>
+<div class="table-wrap">
+<table>
+  <thead><tr><th style="width:100px">维度</th><th>高中选修（高二）</th><th>本科音乐学院通选课</th></tr></thead>
+  <tbody>
+    <tr><td><strong>授课对象</strong></td><td>16-17 岁，高二</td><td>18-20 岁，大一/大二</td></tr>
+    <tr><td><strong>课次范围</strong></td><td>1-5、8-10、13、16 课（共 10 课）</td><td>16 课</td></tr>
+    <tr><td><strong>目标能力</strong></td><td>能用代码创作 16 小节以上音乐片段，理解音乐-程序结构映射</td><td>能独立完成完整原创作品，掌握递归/高阶函数/马尔可夫/OOP/并发</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ===== 五、案例简介 ===== -->
+<h2 id="ch5">五、案例简介</h2>
+
+<h3 id="ch5-1">5.1 课标依据与现实需求</h3>
+<p>高中音乐课标设<strong>音乐编创</strong>必修模块，要求学生编创 16 小节以上旋律并运用软件创作；信息技术课标将<strong>计算思维</strong>列为核心素养，必修模块以 Python 为教学语言。<sup><a href="#cite-1">[1]</a></sup><sup><a href="#cite-2">[2]</a></sup>当前的实践教学存在问题：音乐课识谱教学弱化、漠视乐理培养；编程课以控制台输出为主、缺乏创造性反馈。本课程以音乐创作为编程场景，以代码为音乐分析工具，同时回应两科需求。</p>
+
+<h3 id="ch5-2">5.2 国际参照</h3>
+<p>音乐与编程融合在国际上已有先例：</p>
+
+<div class="platform-grid">
+  <div class="platform-card">
+    <h4>MIT music21</h4>
+    <div class="origin">MIT / 学术研究级</div>
+    <p>Python 工具包，用于计算机辅助音乐理论分析、MIR 和音乐生成。MIT 21M.383 课程以此为教材，讲义通过 OCW 开放；Tymoczko 在 <em>Music Theory Online</em> 撰文评述其对学科研究的推动。<sup><a href="#cite-3">[3]</a></sup><sup><a href="#cite-4">[4]</a></sup></p>
+  </div>
+  <div class="platform-card">
+    <h4>Sonic Pi</h4>
+    <div class="origin">剑桥大学 / 现场编码</div>
+    <p>基于 Ruby 的实时编码工具，<code>play 60</code> 即发音符，<code>live_loop</code> 实现循环，强调「即写即听」。<sup><a href="#cite-5">[5]</a></sup></p>
+  </div>
+  <div class="platform-card">
+    <h4>EarSketch</h4>
+    <div class="origin">佐治亚理工 / STEAM</div>
+    <p>Python/JS 代码作曲平台，重组音频循环创作音乐，对齐 AP CS Principles 标准。研究表明显著提升学生计算持续意向。<sup><a href="#cite-6">[6]</a></sup></p>
+  </div>
+  <div class="platform-card">
+    <h4>TunePad</h4>
+    <div class="origin">西北大学 / 音符级编程</div>
+    <p>聚焦音符级作曲，提供计算笔记本架构和钢琴卷轴界面，配套教材《Introduction to Digital Music with Python Programming》。<sup><a href="#cite-7">[7]</a></sup></p>
+  </div>
+  <div class="platform-card">
+    <h4>Chrome Music Lab</h4>
+    <div class="origin">Google / 图形化入门</div>
+    <p>网页音乐实验集合，Song Maker 可在网格中绘制旋律节奏，适合课程导入热身。</p>
+  </div>
+  <div class="platform-card">
+    <h4>Groove Pizza</h4>
+    <div class="origin">NYU / 节奏可视化</div>
+    <p>圆形鼓机，将节奏模式可视化在圆形网格上，直观展示节拍细分与切分音。</p>
+  </div>
+</div>
+
+<p>本课程选择 Python + music21 作为教学工具：①与高中 Python 教学衔接；②可生成 MusicXML 五线谱并播放，形成即时反馈；③内置音乐语料库，支撑从创作到分析的学术纵深。</p>
+
+<!-- ===== 六、学情分析 ===== -->
+<h2 id="ch6">六、学情分析</h2>
+
+<h3 id="ch6-1">6.1 高中段（高二选修）</h3>
+
+<h4>知识基础</h4>
+<ul>
+  <li><strong>音乐</strong>：已完成义务教育音乐课程，形式上接触过音名、时值、反复记号、基本音阶、简单和弦；高中鉴赏模块能从旋律/节奏/力度等要素分析作品。<sup><a href="#cite-8">[8]</a></sup>但实际识谱和乐理掌握程度各异，部分学生音程/和弦概念模糊。课程通过代码生成五线谱和 MIDI 播放的即时反馈在实践中复习乐理，不单独补课。</li>
+  <li><strong>编程</strong>：高一必修《数据与计算》已学 Python 基本数据类型、变量、运算符、顺序/选择/循环、列表/字典、函数定义与调用。<sup><a href="#cite-2">[2]</a></sup>未系统学习类与对象、递归、并发编程。课程基础课在音乐语境中回顾 Python 基础并新授函数封装；第 6-7 课（多线程/多进程）及第 11、12、14、15 课（递归/高阶函数/马尔可夫/OOP）标注 ★ 为进阶课程，视开课情况和学生能力选学。</li>
+  <li><strong>数学</strong>：具备基础函数、数列、概率统计、三角函数知识，足以理解十二平均律等比数列、分数时值、模 12 运算、线性插值。条件概率与状态转移（马尔可夫链）对部分学生有挑战，本科段深入。</li>
+</ul>
+
+<h4>认知特征</h4>
+<p>16-17 岁处于形式运算阶段后期，具备假设-演绎推理、抽象符号处理和元认知能力，能同时处理编程逻辑与音乐理论的双重抽象。<sup><a href="#cite-9">[9]</a></sup>音乐是青少年身份认同的核心载体，「用代码做自己的音乐」具有强内在动机。</p>
+
+<h3 id="ch6-2">6.2 本科段（音乐学院通选课）</h3>
+
+<h4>知识基础</h4>
+<ul>
+  <li><strong>音乐</strong>：系统接受过乐理、视唱练耳、和声训练，多数有乐器演奏或声乐专长；部分学生已接触曲式、复调、配器等专业课程。音乐基础高于普通高中学生平均水平。可直接在专业语境中讨论卡农、赋格、变奏、转调、配器等概念，将更多时间留给编程与算法。</li>
+  <li><strong>编程</strong>：达到新高考信息技术课标合格水平，已掌握 Python 基本语法、变量与数据类型、顺序/选择/循环结构、列表/字典、函数定义与调用，能阅读和编写简单程序。基础课以音乐应用为驱动快速复习 Python 并引入 music21，不需从零讲语法；第 6-7 课（多线程/多进程）及第 11、12、14、15 课（递归/高阶函数/马尔可夫/OOP）为新授进阶内容，是课程核心挑战。</li>
+  <li><strong>数学</strong>：新高考数学课标合格以上水平，掌握函数、数列、概率统计、三角函数、向量与矩阵初步，具备算法思维与逻辑推理能力。十二平均律等比数列、模 12 运算、线性插值等可直接讲解；马尔可夫链的状态转移矩阵可在概率统计基础引述数学公式推导。</li>
+</ul>
+
+<h4>认知特征与动机</h4>
+<p>本科生抽象思维成熟，专业音乐训练使其对结构、模式、变奏等概念有深刻的感性经验；新高考课标水平的数学与编程基础使其具备算法推理和代码阅读能力，无需从零起步。音乐感性经验与计算思维的结合，为理解递归（卡农）、多态（变奏）、状态转移（和声进行/马尔可夫链）、并发（乐团协作）提供了双线认知优势。动机多来自「用新技术拓展音乐创作手段」和「理解 AI 音乐生成原理」。</p>
+
+<h3 id="ch6-3">6.3 两学段对比与教学策略</h3>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>对比维度</th><th>高中段</th><th>本科段</th></tr></thead>
+  <tbody>
+    <tr><td>主要优势</td><td>编程有高中基础，抽象思维活跃</td><td>乐理/视唱练耳/和声扎实，数学与编程达新课标合格水平</td></tr>
+    <tr><td>主要短板</td><td>识谱/乐理参差，编程仅入门</td><td>并发/递归/高阶函数/OOP 等进阶编程概念未系统学习</td></tr>
+    <tr><td>教学重心</td><td>音乐语境中深化编程，乐理「做中学」</td><td>Python 与乐理基础作为支点，重点突破进阶编程概念与算法</td></tr>
+    <tr><td>基础课</td><td>Python 回顾 + music21 新授，循序渐进</td><td>以音乐应用驱动快速复习 Python，同步引入 music21，节奏较快</td></tr>
+    <tr><td>进阶课（★）</td><td>跳过 6 节（并发/递归/高阶函数/马尔可夫/OOP）</td><td>全部讲授，在已有编程基础上深入进阶概念与算法</td></tr>
+    <tr><td>期末作品</td><td>16 小节以上小曲</td><td>完整原创作品 + 创作说明 + 答辩</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ===== 七、教学重点 ===== -->
+<h2 id="ch7">七、教学重点</h2>
+<ol>
+  <li><strong>音乐-程序结构映射</strong>：反复↔循环、乐句↔函数、卡农↔递归、转调↔映射、和弦↔数据结构等。</li>
+  <li><strong>music21 对象模型</strong>：Note、Rest、Chord、Stream、Part、Measure、Score 的层次关系与创建/组合/分析/输出。</li>
+  <li><strong>计算思维</strong>：分解（乐句函数）、模式识别（反复/模进）、抽象（数据结构表示和弦）、算法设计（迭代/递归/马尔可夫）、并发思维（线程/进程）。</li>
+  <li><strong>乐理结构化</strong>：音程、和弦构成、功能和声、调式、曲式、复调入门。</li>
+</ol>
+
+<!-- ===== 八、教学难点 ===== -->
+<h2 id="ch8">八、教学难点</h2>
+<ol>
+  <li><strong>双重抽象</strong>：同时理解音乐结构与编程概念并建立映射。对策：先听后写、可视化支架。</li>
+  <li><strong>从模仿到创作</strong>：后半段独立创作可能遇瓶颈。对策：模板+分阶段任务。</li>
+  <li><strong>递归与高阶函数（★）</strong>：调用栈和函数作为参数是编程思维的跃升。对策：声部进入图、楼梯比喻，高中段跳过。</li>
+  <li><strong>并发同步（★）</strong>：竞态条件与死锁抽象。对策：单乐器双声部不同步、乐团互相等待的音乐场景类比。</li>
+  <li><strong>马尔可夫链（★）</strong>：条件概率与状态转移矩阵。对策：从音程频率统计的直观案例切入，本科段可适度引入矩阵表达与公式推导。</li>
+  <li><strong>双端调试</strong>：代码报错与音乐「不好听」需分别诊断。对策：代码审查 + 聆听互评。</li>
+  <li><strong>基础差异</strong>：高中乐理参差、编程仅入门；本科编程基础亦可能因生源不同有差异。对策：分层任务 + 同伴互助。</li>
+</ol>
+
+<!-- ===== 九、教学工具 ===== -->
+<h2 id="ch9">九、教学工具</h2>
+<div class="table-wrap">
+<table>
+  <thead><tr><th style="width:130px">类别</th><th>工具</th><th>用途</th></tr></thead>
+  <tbody>
+    <tr><td><strong>编程语言</strong></td><td>Python 3.9 及以上</td><td>课程核心编程语言</td></tr>
+    <tr><td><strong>核心库</strong></td><td>music21（最新稳定版）</td><td>音符、和弦、乐谱、乐理分析、MIDI 输出、语料库研究</td></tr>
+    <tr><td><strong>乐谱渲染</strong></td><td>MuseScore Studio 4</td><td>渲染 MusicXML 乐谱、播放试听、导出音频与 PDF</td></tr>
+    <tr><td><strong>开发环境</strong></td><td>VS Code + Python 扩展 / Jupyter Notebook</td><td>代码编写与运行；Jupyter 适合交互式教学和数据分析</td></tr>
+    <tr><td><strong>音频播放</strong></td><td>MuseScore 内置合成器 / 系统 MIDI 播放器</td><td>播放生成的 MIDI / MusicXML 文件</td></tr>
+    <tr><td><strong>可视化辅助</strong></td><td>Groove Pizza、Chrome Music Lab Song Maker</td><td>节奏与旋律的图形化导入工具，用于课程前 5 分钟热身</td></tr>
+    <tr><td><strong>视频资源</strong></td><td>MIT OCW 21M.383 精选片段、Sonic Pi 现场编码表演视频、EarSketch 介绍视频、经典作品赏析</td><td>课程导入与灵感激发</td></tr>
+    <tr><td><strong>辅助工具</strong></td><td>电子琴/MIDI 键盘（可选）、节拍器、五线谱白板</td><td>乐理演示与互动</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h4>环境配置</h4>
+<pre><code><span class="code-comment"># 安装 music21</span>
+pip install music21
+
+<span class="code-comment"># 首次使用时在 Python 中配置 MuseScore 路径</span>
+<span class="code-keyword">from</span> music21 <span class="code-keyword">import</span> *
+environment.set(<span class="code-string">'musescoreDirectPNGPath'</span>, <span class="code-string">'C:/Program Files/MuseScore 4/bin/MuseScore4.exe'</span>)
+environment.set(<span class="code-string">'musicxmlPath'</span>, <span class="code-string">'C:/Program Files/MuseScore 4/bin/MuseScore4.exe'</span>)
+
+<span class="code-comment"># 验证安装</span>
+n = note.Note(<span class="code-string">"C4"</span>)
+n.show()        <span class="code-comment"># 在 MuseScore 中显示乐谱</span>
+n.show(<span class="code-string">'midi'</span>)  <span class="code-comment"># 播放 MIDI</span></code></pre>
+
+<!-- ===== 十、类比关系总表 ===== -->
+<h2 id="ch10">十、音乐与编程类比关系总表</h2>
+<p>以下 16 组映射是课程的知识骨架。标注 ★ 的为进阶课，高中段视情况开展。</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th class="num" style="width:40px">#</th><th>音乐概念</th><th>编程概念</th><th>具体解释</th></tr></thead>
+  <tbody>
+    <tr><td class="num">1</td><td>音高 / MIDI / 频率</td><td>变量 / 对象 / 属性</td><td>每个音符有音名、MIDI 编号和频率三重属性，对应一个 Note 对象的多个属性；音高到频率是等比数列映射</td></tr>
+    <tr><td class="num">2</td><td>节奏 / 时值 / 拍号</td><td>列表 / Stream 层次结构</td><td>音符按时间排列在小节中，小节组成声部，声部组成总谱——对应 Stream 的 Measure→Part→Score 树形结构</td></tr>
+    <tr><td class="num">3</td><td>乐谱 / 演奏者 / 反复记号</td><td>纸带 / 读写头 / 状态转移函数</td><td>乐谱是纸带，演奏者的眼睛是读写头，大脑中的反复计数和速度力度是状态寄存器，反复跳跃规则是转移函数，Fine 是停机——演奏即图灵机计算</td></tr>
+    <tr><td class="num">4</td><td>反复 / 跳房子 / D.C. / D.S. </td><td>if/else / while / 控制流</td><td>乐谱中的演奏路径（第一遍走 1.、第二遍走 2.、D.C. 回头）本质上是一种控制流，与程序的分支和跳转逻辑同构</td></tr>
+    <tr><td class="num">5</td><td>乐句 / 乐段 / 动机</td><td>函数 / 模块化 / 封装</td><td>乐句有名字、可独立演奏、可被多次调用，正如函数有函数名、可独立定义、可被反复调用；乐段是乐句的组合</td></tr>
+    <tr><td class="num">6 ★</td><td>单乐器双声部 / 同一大脑</td><td>多线程 / 共享内存 / 锁</td><td>左右手各弹各的音符但共享同一个大脑（内存），必须对齐节拍（同步）；拍子不同步就是竞态条件，踏板就是互斥锁</td></tr>
+    <tr><td class="num">7 ★</td><td>乐团 / 指挥 / 乐手</td><td>多进程 / 消息传递 / 死锁</td><td>每个乐手有独立的乐器和分谱（独立内存），通过指挥手势协调（Queue 消息传递）；乐手互相等待无人开始就是死锁，四个必要条件可逐一打破</td></tr>
+    <tr><td class="num">8</td><td>力度 / 速度 / 演奏法</td><td>函数参数 / 参数化 / 插值</td><td>同一段旋律用不同力度和速度演奏产生不同情绪，正如同一函数用不同参数产生不同输出；渐强↔线性插值</td></tr>
+    <tr><td class="num">9</td><td>和弦 / 功能和声</td><td>字典 / 集合 / 数据结构</td><td>和弦是「同时发声的音符集合」，用半音数集合定义和弦类型（大三=[0,4,7]）；功能和声进行是和弦状态的转移规则</td></tr>
+    <tr><td class="num">10</td><td>模进 / 动机发展</td><td>迭代 / 嵌套循环 / transpose</td><td>动机在不同音高上重复（模进）= 循环中对数据做统一变换（transpose）；上行/下行模进对应递增/递减迭代</td></tr>
+    <tr><td class="num">11 ★</td><td>卡农 / 赋格 / 对位法</td><td>递归 / 调用栈 / 延迟执行</td><td>主题在不同声部隔几小节依次进入、互相追逐，正如递归函数隔几层调用依次执行；声部堆叠顺序=调用栈 LIFO</td></tr>
+    <tr><td class="num">12 ★</td><td>变奏曲 / 主题变形</td><td>高阶函数 / 多态 / map</td><td>同一主题用不同手法变奏（加花、节奏加密、转调）= 同一数据用不同函数处理；变奏函数即高阶函数的策略参数</td></tr>
+    <tr><td class="num">13</td><td>转调 / 移调</td><td>映射 / 函数变换 / 模12运算</td><td>把所有音符移高 N 个半音 = 对数据集做统一的函数映射；音高空间是模 12 的循环群，转调是该空间的平移变换</td></tr>
+    <tr><td class="num">14 ★</td><td>风格模仿 / 语料分析</td><td>马尔可夫链 / 字典建模 / 统计</td><td>音乐风格体现在「什么音后面接什么音」的统计规律中——用字典记录音程转移频率，构建马尔可夫链生成风格化旋律</td></tr>
+    <tr><td class="num">15 ★</td><td>音色 / 配器 / MIDI</td><td>类与对象 / 封装 / 实例化</td><td>同一音符用钢琴或小提琴演奏听感不同——同一数据用不同类的实例表现不同；乐器类封装了音色数据和演奏行为</td></tr>
+    <tr><td class="num">16</td><td>曲式结构 / 作品完整性</td><td>架构 / 设计模式 / 项目整合</td><td>歌曲有「主歌-副歌-桥段」的结构范式，软件有可复用的架构模式；完整作品需要模块化组织、接口设计和整体调试</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="callout callout-quote">
+  <p><strong>拓展映射</strong>（随课插入，不设独立课时）：渐强渐弱↔插值算法、切分音↔异步/事件驱动、装饰音↔装饰器模式、节拍器↔时钟/调度器、MIDI↔序列化与协议、泛音列↔傅里叶变换、十二音序列↔排列组合。</p>
+</div>
+
+<!-- ===== 十一、16节课详细设计 ===== -->
+<h2 id="ch11">十一、16 节课详细设计</h2>
+
+<!-- 模块一 -->
+<div class="module-divider">
+  <div class="module-label">模块一 / 第 1-4 课</div>
+  <h2>声音与计算的基础——从音高数据到图灵机模型</h2>
+  <p>建立「音乐即数据、乐谱即程序、演奏即计算」的核心认知。通过音高的数字本质、节奏的层次结构、图灵机的计算模型和曲式的控制流，复习 Python 基础并掌握 music21 的对象模型，为整个课程奠定理论基石。</p>
+</div>
+
+<!-- 第1课 -->
+<article class="lesson" id="lesson1">
+  <div class="lesson-header">
+    <div class="lesson-num">01</div>
+    <div class="lesson-title">
+      <h3>音高的数字本质</h3>
+      <div class="subtitle">MIDI、频率与 Note 对象模型</div>
+    </div>
+  </div>
+  <div class="lesson-meta">
+    <div class="lesson-meta-item"><span class="label">音乐知识</span>音名与八度分组、MIDI 编号（C4=60）、十二平均律、频率与音高的数学关系（A4=440Hz，f(n)=440×2<sup>(n-69)/12</sup>）、音分</div>
+    <div class="lesson-meta-item"><span class="label">编程知识</span>Python 变量与数据类型回顾、对象的属性与方法、music21 的 Note 对象、pitch / midi / frequency 属性</div>
+    <div class="lesson-meta-item full"><span class="label">教学目标</span>理解音高的三重数字表达（音名/MIDI/频率）及其数学关系；掌握 Note 对象的创建和属性访问；建立「一个音符 = 一个具有多重属性的对象」的认知。</div>
+  </div>
+  <div class="mapping-badge">类比关系：音高 / MIDI / 频率 ↔ 变量 / 对象 / 属性</div>
+
+  <div class="task-box task-teacher">
+    <h4><span class="icon">T</span>教师任务</h4>
+    <ol>
+      <li><strong>导入（10分钟）</strong>：弹出 C4、E4、G4 让学生听辨音高差异，引出频率概念。讲解 A4=440Hz 与十二平均律（每半音乘 2<sup>1/12</sup>≈1.0595）。</li>
+      <li><strong>讲授（25分钟）</strong>：演示创建 Note 对象及 pitch、midi、frequency 属性，讲解对象与属性的概念。对比等音 C#4/Db4 的 MIDI 编号相同。</li>
+      <li><strong>实践（45分钟）</strong>：指导学生完成课堂任务，引导发现 MIDI 差 12 对应频率 2 倍的八度关系。</li>
+      <li><strong>总结（10分钟）</strong>：学生展示音高序列，总结音名/MIDI/频率是同一音高的三重表达。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-student">
+    <h4><span class="icon">S</span>学生任务</h4>
+    <ol>
+      <li>创建 C4、E4、G4、C5 四个 Note 对象，分别打印它们的音名、MIDI 编号和频率，观察 MIDI 编号与频率的数学关系。</li>
+      <li>用 Python 代码验证：MIDI 编号相差 12 的两个音（如 C4 和 C5），频率之比恰好为 2:1。</li>
+      <li>编写一个函数 <code>midi_to_freq(midi)</code>，输入 MIDI 编号返回频率，与 music21 的 <code>pitch.frequency</code> 对比验证。</li>
+      <li>创建一个包含 8 个音符的小旋律（C 大调音阶），设置不同时值（四分音符、二分音符等），用 <code>Stream</code> 组合并在 MuseScore 中显示和播放。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-design">
+    <h4><span class="icon">D</span>设计意图</h4>
+    <p>从物理频率与数学等比数列切入，建立音高的数据化理解；Note 对象的多属性结构让学生在音乐语境中接触「对象」概念；验证频率函数以确保理解十二平均律的数学原理，而非机械调用。</p>
+  </div>
+
+  <h4>music21 代码要点</h4>
+  <pre><code><span class="code-keyword">from</span> music21 <span class="code-keyword">import</span> *
+
+<span class="code-comment"># 创建音符对象</span>
+n = note.Note(<span class="code-string">"C4"</span>)
+<span class="code-func">print</span>(n.pitch)           <span class="code-comment"># C4</span>
+<span class="code-func">print</span>(n.pitch.midi)      <span class="code-comment"># 60</span>
+<span class="code-func">print</span>(n.pitch.frequency) <span class="code-comment"># 261.625565...</span>
+
+<span class="code-comment"># 修改时值（quarterLength 以四分音符为单位）</span>
+n.quarterLength = <span class="code-num">2</span>  <span class="code-comment"># 二分音符</span>
+
+<span class="code-comment"># 组合为 Stream 并输出</span>
+s = stream.Stream()
+s.<span class="code-func">append</span>(note.Note(<span class="code-string">"C4"</span>))
+s.<span class="code-func">append</span>(note.Note(<span class="code-string">"D4"</span>))
+s.<span class="code-func">show</span>()       <span class="code-comment"># 显示乐谱</span>
+s.<span class="code-func">show</span>(<span class="code-string">'midi'</span>) <span class="code-comment"># 播放声音</span></code></pre>
+
+  <p><strong>课堂产出</strong>：一个包含 C 大调音阶的 Stream，能在 MuseScore 中显示乐谱并播放。<br>
+  <strong>课后拓展</strong>：用代码计算「纯五度」（MIDI 差 7）的频率比，验证其接近 3:2（约 1.498）。为什么纯五度听起来「和谐」？</p>
+</article>
+
+<!-- 第2课 -->
+<article class="lesson" id="lesson2">
+  <div class="lesson-header">
+    <div class="lesson-num">02</div>
+    <div class="lesson-title">
+      <h3>节奏的时间结构</h3>
+      <div class="subtitle">时值、拍号与 Stream 层次体系</div>
+    </div>
+  </div>
+  <div class="lesson-meta">
+    <div class="lesson-meta-item"><span class="label">音乐知识</span>音符时值的分数体系（全音符=4拍，二分=2拍，四分=1拍，八分=0.5拍）、休止符、拍号（4/4、3/4、6/8）、小节线、节拍重音、节奏型</div>
+    <div class="lesson-meta-item"><span class="label">编程知识</span>列表与列表推导式回顾、for 循环遍历、append/extend 方法、music21 的 Stream 层次结构（Score→Part→Measure→Note）、meter.TimeSignature</div>
+    <div class="lesson-meta-item full"><span class="label">教学目标</span>理解音乐时间结构与程序数据结构的同构关系；掌握用 Measure 组织小节、用 Part 组织声部的方法；能构建有拍号、有小节划分的多小节旋律。</div>
+  </div>
+  <div class="mapping-badge">类比关系：节奏 / 时值 / 拍号 ↔ 列表 / Stream 层次结构</div>
+
+  <div class="task-box task-teacher">
+    <h4><span class="icon">T</span>教师任务</h4>
+    <ol>
+      <li><strong>导入（10分钟）</strong>：拍手演示 4/4、3/4、6/8 拍的强弱规律，引出时值的分数关系与拍号约束。</li>
+      <li><strong>讲授（25分钟）</strong>：对比扁平 Stream 与 Measure 结构化写法，讲解 Score→Part→Measure→Note 层次模型及拍号设置。</li>
+      <li><strong>实践（45分钟）</strong>：学生用 Measure 构建多小节旋律，教师重点指导「每小节时值总和等于拍号」的约束。</li>
+      <li><strong>总结（10分钟）</strong>：以目录树类比 Stream 层次结构，强调结构化带来的可访问、可修改、可排版优势。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-student">
+    <h4><span class="icon">S</span>学生任务</h4>
+    <ol>
+      <li>用 Measure 构建 4/4 拍的 4 小节节奏片段，每小节使用不同的节奏型（四分音符、八分音符、二分音符、休止符的组合），确保每小节时值总和为 4 拍。</li>
+      <li>用列表推导式生成一串八分音符（如 C4 D4 E4 F4 G4 A4 B4 C5 的上行音阶），放入一个 Measure 中。</li>
+      <li>对比 4/4 拍和 3/4 拍的同一旋律片段，感受拍号对音乐性格的影响。</li>
+      <li>挑战：尝试 6/8 拍，理解「以八分音符为一拍，每小节 6 拍」的含义。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-design">
+    <h4><span class="icon">D</span>设计意图</h4>
+    <p>Stream 层次结构与树形数据结构、文件目录同构，便于理解「音乐即结构化数据」；时值约束是音乐的约束，可辅助学生理解计算机的资源约束概念。</p>
+  </div>
+
+  <h4>music21 代码要点</h4>
+  <pre><code><span class="code-keyword">from</span> music21 <span class="code-keyword">import</span> *
+
+<span class="code-comment"># 创建一个有拍号的小节</span>
+m = stream.Measure(number=<span class="code-num">1</span>)
+m.timeSignature = meter.TimeSignature(<span class="code-string">'4/4'</span>)
+m.<span class="code-func">append</span>(note.Note(<span class="code-string">'C4'</span>, quarterLength=<span class="code-num">1</span>))
+m.<span class="code-func">append</span>(note.Note(<span class="code-string">'D4'</span>, quarterLength=<span class="code-num">1</span>))
+m.<span class="code-func">append</span>(note.Note(<span class="code-string">'E4'</span>, quarterLength=<span class="code-num">2</span>))
+
+<span class="code-comment"># 用列表推导式批量生成音符</span>
+pitches = [<span class="code-string">'C4'</span>,<span class="code-string">'D4'</span>,<span class="code-string">'E4'</span>,<span class="code-string">'F4'</span>,<span class="code-string">'G4'</span>,<span class="code-string">'A4'</span>,<span class="code-string">'B4'</span>,<span class="code-string">'C5'</span>]
+m2 = stream.Measure(number=<span class="code-num">2</span>)
+m2.timeSignature = meter.TimeSignature(<span class="code-string">'4/4'</span>)
+<span class="code-keyword">for</span> p <span class="code-keyword">in</span> pitches:
+    m2.<span class="code-func">append</span>(note.Note(p, quarterLength=<span class="code-num">0.5</span>))
+
+<span class="code-comment"># 组合到 Part</span>
+part = stream.Part()
+part.<span class="code-func">append</span>(m)
+part.<span class="code-func">append</span>(m2)
+part.<span class="code-func">show</span>()</code></pre>
+
+  <p><strong>课堂产出</strong>：一段有拍号、有小节划分、节奏正确的 4-8 小节旋律。<br>
+  <strong>课后拓展</strong>：为自己的旋律加入一个低音声部（使用低音区音符如 C3、G3），初步体验多声部。</p>
+</article>
+
+<!-- 第3课 -->
+<article class="lesson" id="lesson3">
+  <div class="lesson-header">
+    <div class="lesson-num">03</div>
+    <div class="lesson-title">
+      <h3>图灵机与图灵完备</h3>
+      <div class="subtitle">演奏者即处理头：乐谱作为计算模型</div>
+    </div>
+  </div>
+  <div class="lesson-meta">
+    <div class="lesson-meta-item"><span class="label">音乐知识</span>乐谱作为形式化指令序列、视奏过程的机制、反复记号与状态跳转（D.C./D.S./跳房子/Fine）、速度力度标记作为全局状态、乐谱的语法与语义</div>
+    <div class="lesson-meta-item"><span class="label">编程知识</span>图灵机模型（纸带、读写头、状态寄存器、转移函数、停机状态）、图灵完备性判定（条件分支+跳转+可读写存储）、通用图灵机与存储程序思想、冯·诺依曼架构基础、算法的本质</div>
+    <div class="lesson-meta-item full"><span class="label">教学目标</span>理解图灵机的五个核心组成及其与音乐演奏的对应关系；能用状态转移规则描述乐谱的反复跳跃逻辑；理解图灵完备性的含义和判定标准；建立「乐谱即程序、演奏即计算」的跨学科认知。</div>
+  </div>
+  <div class="mapping-badge">类比关系：乐谱 / 演奏者 / 反复记号 ↔ 纸带 / 读写头 / 状态转移函数</div>
+
+  <div class="task-box task-teacher">
+    <h4><span class="icon">T</span>教师任务</h4>
+    <ol>
+      <li><strong>导入（10分钟）</strong>：请学生视奏带反复和跳房子的乐谱，在跳转处喊停，引导其说出手指移动（读写头）、大脑记遍数（状态）、遇记号跳回（转移）、弹完结束（停机），引出图灵机。</li>
+      <li><strong>讲授（25分钟）</strong>：讲解图灵机五部件与音乐映射——纸带=乐谱、读写头=眼睛/手指、状态寄存器=大脑中的速度/力度/反复遍数、转移函数=乐谱规则+演奏素养、停机=Fine；并讲解图灵完备性三条件（分支、跳转、可读写存储）及通用图灵机的存储程序思想。</li>
+      <li><strong>实践（45分钟）</strong>：用状态转移表描述跳房子逻辑：
+        <pre><code>δ(第1遍, 看到1°房子) = (第1遍, 演奏1°, 跳回反复起点)
+δ(第2遍, 看到1°房子) = (第2遍, 跳过1°, 继续向右)
+δ(第2遍, 看到2°房子) = (正常, 演奏2°, 继续向右)
+δ(任意状态, 看到Fine)  = (停机, —, 停机)</code></pre>
+        学生用 Python 实现简化的「音乐图灵机」（列表纸带、整数头位置、字典状态、转移表控制），观察读写头移动、跳转与停机。</li>
+      <li><strong>总结（10分钟）</strong>：讨论「有 D.C. 无 Fine」导致的死循环，引出图灵停机问题——不存在通用方法判断任意程序是否停机。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-student">
+    <h4><span class="icon">S</span>学生任务</h4>
+    <ol>
+      <li>用纸带图画出《欢乐颂》（带反复）的演奏过程，标注每个位置的「当前状态」和「读写头移动方向」。</li>
+      <li>将一段跳房子乐谱（1°/2°）的演奏逻辑写成状态转移表，再翻译成 Python 控制代码。</li>
+      <li>运行课堂提供的「音乐图灵机」代码框架，修改纸带内容（音符和反复记号），观察机器行为变化。</li>
+      <li>思考并回答：为什么说「换一份乐谱不换演奏者」体现了通用图灵机的思想？这和「换一个程序不换计算机」有什么关系？</li>
+      <li>挑战：在音乐图灵机中加入「写入」功能——让机器在经过某个音符时修改它的力度标记，体验完整图灵机的读写能力。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-design">
+    <h4><span class="icon">D</span>设计意图</h4>
+    <p>图灵机是计算机科学的理论基石，用音乐演奏教图灵机比二进制纸带更直观——每个会读谱的学生都能亲身体验读写头移动与状态跳转；这也将后续控制流教学从「学语法」提升到「理解计算本质」的高度。</p>
+  </div>
+
+  <h4>music21 / Python 代码要点</h4>
+  <pre><code><span class="code-comment"># 简化的「音乐图灵机」模型</span>
+<span class="code-comment"># 纸带：音符序列，'R'表示反复记号起点，'F'表示Fine</span>
+tape = [<span class="code-string">'C4'</span>, <span class="code-string">'D4'</span>, <span class="code-string">'E4'</span>, <span class="code-string">'R'</span>, <span class="code-string">'F4'</span>, <span class="code-string">'G4'</span>, <span class="code-string">'F'</span>]
+head = <span class="code-num">0</span>           <span class="code-comment"># 读写头位置</span>
+state = {<span class="code-string">'repeat_count'</span>: <span class="code-num">0</span>, <span class="code-string">'mode'</span>: <span class="code-string">'normal'</span>}  <span class="code-comment"># 状态寄存器</span>
+repeat_pos = <span class="code-keyword">None</span>
+
+<span class="code-keyword">while</span> head &lt; <span class="code-func">len</span>(tape):
+    symbol = tape[head]
+
+    <span class="code-keyword">if</span> symbol == <span class="code-string">'R'</span>:     <span class="code-comment"># 反复记号</span>
+        <span class="code-keyword">if</span> state[<span class="code-string">'repeat_count'</span>] == <span class="code-num">0</span>:
+            repeat_pos = head
+            state[<span class="code-string">'repeat_count'</span>] = <span class="code-num">1</span>
+            head += <span class="code-num">1</span>
+        <span class="code-keyword">else</span>:
+            head += <span class="code-num">1</span>          <span class="code-comment"># 第二遍，继续向右</span>
+    <span class="code-keyword">elif</span> symbol == <span class="code-string">'F'</span>:    <span class="code-comment"># Fine → 停机</span>
+        <span class="code-func">print</span>(<span class="code-string">"停机！乐曲结束。"</span>)
+        <span class="code-keyword">break</span>
+    <span class="code-keyword">else</span>:                   <span class="code-comment"># 普通音符 → 演奏</span>
+        n = note.Note(symbol, quarterLength=<span class="code-num">1</span>)
+        <span class="code-func">print</span>(<span class="code-string">f"演奏: {symbol}"</span>)
+        head += <span class="code-num">1</span>
+
+    <span class="code-comment"># 第一遍走到头后跳回反复起点</span>
+    <span class="code-keyword">if</span> head &gt;= <span class="code-func">len</span>(tape) <span class="code-keyword">and</span> state[<span class="code-string">'repeat_count'</span>] == <span class="code-num">1</span>:
+        <span class="code-keyword">if</span> repeat_pos <span class="code-keyword">is not None</span>:
+            head = repeat_pos + <span class="code-num">1</span>
+            state[<span class="code-string">'repeat_count'</span>] = <span class="code-num">2</span>
+
+    <span class="code-comment"># 第二遍走到头自然结束（遇到Fine已break）</span></code></pre>
+
+  <p><strong>课堂产出</strong>：一个可运行的「音乐图灵机」程序，能模拟乐谱的反复和停机；一份状态转移表。<br>
+  <strong>课后拓展</strong>：访问 Turing-Tunes 在线项目，考虑不同的图灵机转移规则如何生成不同风格的音乐；思考：HTML/CSS 图灵完备吗？Python 呢？为什么？</p>
+</article>
+
+<!-- 第4课 -->
+<article class="lesson" id="lesson4">
+  <div class="lesson-header">
+    <div class="lesson-num">04</div>
+    <div class="lesson-title">
+      <h3>曲式中的控制流</h3>
+      <div class="subtitle">反复、跳跃记号与条件逻辑</div>
+    </div>
+  </div>
+  <div class="lesson-meta">
+    <div class="lesson-meta-item"><span class="label">音乐知识</span>反复记号（:‖）、跳房子记号（1./2.）、D.C. al Fine、D.S. al Coda、终止式（正格终止/变格终止）、演奏路径的概念</div>
+    <div class="lesson-meta-item"><span class="label">编程知识</span>if/elif/else 条件分支回顾、for/while 循环回顾、enumerate() 计数循环、布尔表达式、嵌套控制流、流程图</div>
+    <div class="lesson-meta-item full"><span class="label">教学目标</span>理解乐谱演奏路径本质上是一种控制流；能用条件分支和循环实现跳房子、D.C. 等反复跳跃结构；能用流程图表示音乐的演奏路径。</div>
+  </div>
+  <div class="mapping-badge">类比关系：反复 / 跳房子 / D.C. / D.S.  ↔ if/else / while / 控制流</div>
+
+  <div class="task-box task-teacher">
+    <h4><span class="icon">T</span>教师任务</h4>
+    <ol>
+      <li><strong>导入（10分钟）</strong>：展示带反复和跳房子的乐谱，用彩色笔标注演奏路径，提问「为什么不把音符抄两遍」，引出复用与控制流思想。</li>
+      <li><strong>讲授（25分钟）</strong>：画出跳房子流程图并用 Python 实现：
+        <pre><code>play_A()
+<span class="code-keyword">for</span> i <span class="code-keyword">in</span> <span class="code-func">range</span>(<span class="code-num">2</span>):
+    <span class="code-func">play_A</span>()
+    <span class="code-keyword">if</span> i == <span class="code-num">0</span>:
+        <span class="code-func">play_ending1</span>()
+    <span class="code-keyword">else</span>:
+        <span class="code-func">play_ending2</span>()</code></pre>
+      讲解 enumerate() 及 D.C. al Fine 的 while+标志变量实现，强调反复跳跃记号本质是控制流指令。</li>
+      <li><strong>实践（45分钟）</strong>：学生为第 2 课旋律实现跳房子结构，用流程图对比代码执行路径与乐谱演奏路径；挑战 D.C. al Fine。</li>
+      <li><strong>总结（10分钟）</strong>：学生展示流程图与代码，总结乐谱反复记号与程序分支循环的同构关系。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-student">
+    <h4><span class="icon">S</span>学生任务</h4>
+    <ol>
+      <li>将第 2 课创作的旋律分为 A 段和结尾段，用 for 循环 + if/else 实现跳房子结构：第一遍演奏 A 段 + 结尾 1，反复后演奏 A 段 + 结尾 2。</li>
+      <li>用流程图画出自己代码的执行路径，与乐谱上的演奏路径对比。</li>
+      <li>挑战：实现 D.C. al Fine 结构——先演奏 B 段，再回头演奏 A 段，到标记 Fine 处停止。提示：使用 while 循环和布尔标志。</li>
+      <li>思考：如果要实现「反复 3 遍，每遍结尾都不同」，代码该怎么写？（引出 elif）</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-design">
+    <h4><span class="icon">D</span>设计意图</h4>
+    <p>音乐中的反复跳跃记号提供了极其直观的真实控制流场景，「第一遍走 1.、第二遍走 2.」正是 if/else 的语义；用流程图同时表示乐谱路径与程序路径，让学生亲眼看到两者的同构性。</p>
+  </div>
+
+  <p><strong>课堂产出</strong>：一段带跳房子结构的乐曲，运行后能听到两遍不同的结尾，代码中有清晰的条件分支。<br>
+  <strong>课后拓展</strong>：查找一首自己熟悉的流行歌曲，分析它的曲式结构（主歌-副歌-主歌-副歌-桥段-副歌），用伪代码写出它的「演奏路径」。</p>
+</article>
+
+<!-- 模块二 -->
+<div class="module-divider">
+  <div class="module-label">模块二 / 第 5-9 课</div>
+  <h2>结构与并发——从函数封装到多线程多进程</h2>
+  <p>从「写一段旋律」进阶到「组织一首乐曲」。掌握函数封装，学习参数化设计和数据结构选择；本科段进一步深入多线程（单乐器双声部）与多进程（乐团协作），理解音乐组织与程序架构的深层对应。</p>
+</div>
+
+<!-- 第5课 -->
+<article class="lesson" id="lesson5">
+  <div class="lesson-header">
+    <div class="lesson-num">05</div>
+    <div class="lesson-title">
+      <h3>乐句的封装</h3>
+      <div class="subtitle">函数、模块化与乐段结构</div>
+    </div>
+  </div>
+  <div class="lesson-meta">
+    <div class="lesson-meta-item"><span class="label">音乐知识</span>动机（motive）、乐句（phrase，通常 4 小节）、乐段（period，通常 8 小节）、过渡句、问答句（前乐句/后乐句）、主歌/副歌结构、音乐材料的重复与对比</div>
+    <div class="lesson-meta-item"><span class="label">编程知识</span>函数定义与调用、参数传递、返回值、变量作用域（局部/全局）、模块化编程、DRY 原则（Don't Repeat Yourself）、代码可读性</div>
+    <div class="lesson-meta-item full"><span class="label">教学目标</span>理解乐句与函数的同构关系；能用函数将音乐拆分为可复用的乐句模块；通过函数组合构建完整乐曲；体会模块化在音乐和编程中的共同价值。</div>
+  </div>
+  <div class="mapping-badge">类比关系：乐句 / 乐段 / 动机 ↔ 函数 / 模块化 / 封装</div>
+
+  <div class="task-box task-teacher">
+    <h4><span class="icon">T</span>教师任务</h4>
+    <ol>
+      <li><strong>导入（10分钟）</strong>：播放《小星星》标注乐句划分（4+4 小节问答句），让学生听辨流行歌曲的主歌/副歌分界，提问「代码该堆在一起还是分成函数」。</li>
+      <li><strong>讲授（25分钟）</strong>：对比 16 小节扁平 Stream 的反例与函数重构（phrase_a()/phrase_b() 组合），演示参数化乐句 def phrase(transpose=0, dynamics='mf') 及变量作用域。</li>
+      <li><strong>实践（45分钟）</strong>：学生将熟悉歌曲拆分为至少 3 个乐句函数并组合成完整乐曲，添加 transpose 参数，修改一个函数观察全曲变化。</li>
+      <li><strong>总结（10分钟）</strong>：讨论分函数的理由——复用、可读、易修改、协作，与音乐分乐句的逻辑完全一致。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-student">
+    <h4><span class="icon">S</span>学生任务</h4>
+    <ol>
+      <li>选择一首熟悉的歌曲（如《哦苏珊娜》《生日快乐》或自己喜欢的流行歌），将其拆分为至少 3 个乐句函数（如 <code>verse()</code>、<code>chorus()</code>、<code>bridge()</code>）。</li>
+      <li>每个函数返回一个 Stream（包含若干小节），通过函数调用组合成完整乐曲。</li>
+      <li>给乐句函数添加参数（如 <code>transpose=0</code>），实现同一乐句的不同版本。</li>
+      <li>修改其中一个函数的内容（如把副歌节奏加密），观察整首歌的变化，体会模块化的好处。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-design">
+    <h4><span class="icon">D</span>设计意图</h4>
+    <p>乐句↔函数是迁移性最佳的映射之一，音乐本身就是模块化的；当学生发现修改一个函数就能改变整首歌的副歌时，他们会真正理解「封装」在组织复杂项目中的价值。</p>
+  </div>
+
+  <p><strong>课堂产出</strong>：一首由至少 3 个函数组合而成的完整歌曲结构，代码清晰、可维护。<br>
+  <strong>课后拓展</strong>：尝试在函数中调用其他函数（如 <code>chorus()</code> 内部调用 <code>motive()</code> 两次），理解函数的层次嵌套。</p>
+</article>
+
+<!-- 第6课 -->
+<article class="lesson" id="lesson6">
+  <div class="lesson-header">
+    <div class="lesson-num">06 ★</div>
+    <div class="lesson-title">
+      <h3>多线程：单乐器双声部</h3>
+      <div class="subtitle">共享内存、线程同步与竞态条件</div>
+    </div>
+  </div>
+  <div class="lesson-meta">
+    <div class="lesson-meta-item"><span class="label">音乐知识</span>多声部织体（如主旋律+伴奏）、大谱表（高音/低音谱表）、节奏对齐与声部协调、踏板的共享使用、复调与主调织体</div>
+    <div class="lesson-meta-item"><span class="label">编程知识</span>线程（thread）概念、threading 模块、共享内存、Thread 类与 start()/join()、竞态条件（race condition）、锁（Lock）与线程安全、GIL 概念入门、并发（concurrency）vs 并行（parallelism）</div>
+    <div class="lesson-meta-item full"><span class="label">教学目标</span>理解线程与多声部的映射关系；能用多个 Part 创建单乐器双声部声部；理解共享内存和竞态条件；能用锁解决线程同步问题；区分并发与并行。</div>
+  </div>
+  <div class="mapping-badge">类比关系：单乐器双声部 / 同一大脑 ↔ 多线程 / 共享内存</div>
+
+  <div class="task-box task-teacher">
+    <h4><span class="icon">T</span>教师任务</h4>
+    <ol>
+      <li><strong>导入（10分钟）</strong>：播放《致爱丽丝》左右手分听与合听，讲解两只手各看各的谱但共享同一个大脑和踏板，必须节拍对齐；对比弦乐四重奏为下一课铺垫。</li>
+      <li><strong>讲授（25分钟）</strong>：讲解线程定义（进程内共享内存的最小调度单位），用 Sonic Pi 演示 <code>in_thread</code> 并发效果，再用 threading 模块演示：
+        <pre><code><span class="code-keyword">import</span> threading, time
+
+<span class="code-keyword">def</span> <span class="code-func">right_hand</span>():
+    <span class="code-keyword">for</span> note <span class="code-keyword">in</span> [<span class="code-string">'C5'</span>,<span class="code-string">'E5'</span>,<span class="code-string">'G5'</span>,<span class="code-string">'E5'</span>]:
+        <span class="code-func">print</span>(<span class="code-string">f"右手: {note}"</span>, flush=<span class="code-keyword">True</span>)
+        time.sleep(<span class="code-num">0.5</span>)
+
+<span class="code-keyword">def</span> <span class="code-func">left_hand</span>():
+    <span class="code-keyword">for</span> note <span class="code-keyword">in</span> [<span class="code-string">'C3'</span>,<span class="code-string">'G3'</span>,<span class="code-string">'C4'</span>,<span class="code-string">'G3'</span>]:
+        <span class="code-func">print</span>(<span class="code-string">f"左手: {note}"</span>, flush=<span class="code-keyword">True</span>)
+        time.sleep(<span class="code-num">0.5</span>)
+
+t1 = threading.Thread(target=right_hand)
+t2 = threading.Thread(target=left_hand)
+t1.start(); t2.start()
+t1.join(); t2.join()</code></pre></li>
+      <li><strong>实践（45分钟）</strong>：用共享变量 <code>current_beat</code> 演示不加锁的竞态条件（拍子数混乱），再引入 Lock 修复：
+        <pre><code>current_beat = <span class="code-num">0</span>
+<span class="code-keyword">def</span> <span class="code-func">play_hand</span>(name):
+    <span class="code-keyword">global</span> current_beat
+    <span class="code-keyword">for</span> _ <span class="code-keyword">in</span> <span class="code-func">range</span>(<span class="code-num">4</span>):
+        current_beat += <span class="code-num">1</span>
+        <span class="code-func">print</span>(<span class="code-string">f"{name} 在第 {current_beat} 拍"</span>, flush=<span class="code-keyword">True</span>)
+        time.sleep(<span class="code-num">0.1</span>)</code></pre>
+        <pre><code>lock = threading.Lock()
+<span class="code-keyword">def</span> <span class="code-func">play_hand</span>(name):
+    <span class="code-keyword">global</span> current_beat
+    <span class="code-keyword">for</span> _ <span class="code-keyword">in</span> <span class="code-func">range</span>(<span class="code-num">4</span>):
+        <span class="code-keyword">with</span> lock:
+            current_beat += <span class="code-num">1</span>
+            <span class="code-func">print</span>(<span class="code-string">f"{name} 在第 {current_beat} 拍"</span>, flush=<span class="code-keyword">True</span>)
+        time.sleep(<span class="code-num">0.1</span>)</code></pre>
+        讲解锁如同「踏板只能一只脚踩」，并区分并发（宏观同时、微观交替）与并行（多核同时）。</li>
+      <li><strong>总结（10分钟）</strong>：总结映射——钢琴手=进程、左右手=线程、大脑=共享内存、拍子不同步=竞态条件、踏板=锁；预告乐团=多进程。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-student">
+    <h4><span class="icon">S</span>学生任务</h4>
+    <ol>
+      <li>用 music21 创建一首钢琴小品：右手 Part 弹主旋律（如 C 大调上行音阶），左手 Part 弹分解和弦伴奏（C-G-C-E 等），组合为 Score 显示大谱表并播放。</li>
+      <li>用 threading 创建两个线程，分别「演奏」右手和左手的音符序列（用 print 模拟发声），观察输出的交织效果。多次运行，观察结果是否每次相同。</li>
+      <li>创建一个共享变量 <code>beat</code>，不加锁运行两个线程各 8 次，记录拍子数的混乱情况；然后加锁修复，对比前后差异。</li>
+      <li>思考：为什么单乐器双声部的类比中，「共享大脑」对应「共享内存」？如果两只手各自有独立的大脑，会发生什么？（为下一课多进程做思考准备）</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-design">
+    <h4><span class="icon">D</span>设计意图</h4>
+    <p>单乐器双声部提供了身体化的直觉模型，抽象的“竞态条件”具象为“失去协调”的混乱；与下一课形成「乐手 vs 乐团」的递进对比，让学生在具体场景中理解两种并发模型。</p>
+  </div>
+
+  <h4>代码要点</h4>
+  <pre><code><span class="code-keyword">from</span> music21 <span class="code-keyword">import</span> *
+<span class="code-keyword">import</span> threading, time
+
+<span class="code-comment"># 1. music21 静态多声部（单乐器双声部）</span>
+score = stream.Score()
+right = stream.Part()
+right.insert(<span class="code-num">0</span>, instrument.Piano())
+<span class="code-keyword">for</span> n <span class="code-keyword">in</span> [<span class="code-string">'C5'</span>,<span class="code-string">'E5'</span>,<span class="code-string">'G5'</span>,<span class="code-string">'C6'</span>]:
+    right.append(note.Note(n, quarterLength=<span class="code-num">1</span>))
+left = stream.Part()
+left.insert(<span class="code-num">0</span>, instrument.Piano())
+<span class="code-keyword">for</span> n <span class="code-keyword">in</span> [<span class="code-string">'C3'</span>,<span class="code-string">'G3'</span>,<span class="code-string">'E3'</span>,<span class="code-string">'G3'</span>]:
+    left.append(note.Note(n, quarterLength=<span class="code-num">1</span>))
+score.append([right, left])
+score.show()
+
+<span class="code-comment"># 2. threading 运行时并发 + Lock 同步</span>
+beat = <span class="code-num">0</span>
+lock = threading.Lock()
+<span class="code-keyword">def</span> <span class="code-func">play_hand</span>(name, notes):
+    <span class="code-keyword">global</span> beat
+    <span class="code-keyword">for</span> n <span class="code-keyword">in</span> notes:
+        <span class="code-keyword">with</span> lock:
+            beat += <span class="code-num">1</span>
+            <span class="code-func">print</span>(<span class="code-string">f"{name}: {n} (第{beat}拍)"</span>, flush=<span class="code-keyword">True</span>)
+        time.sleep(<span class="code-num">0.3</span>)
+
+t1 = threading.Thread(target=play_hand, args=(<span class="code-string">"右手"</span>, [<span class="code-string">'C5'</span>,<span class="code-string">'E5'</span>,<span class="code-string">'G5'</span>]))
+t2 = threading.Thread(target=play_hand, args=(<span class="code-string">"左手"</span>, [<span class="code-string">'C3'</span>,<span class="code-string">'G3'</span>,<span class="code-string">'C4'</span>]))
+t1.start(); t2.start()
+t1.join(); t2.join()</code></pre>
+
+  <p><strong>课堂产出</strong>：一首单乐器双声部大谱表作品 + 一个可运行的多线程同步程序。<br>
+  <strong>课后拓展</strong>：用 Sonic Pi 的 <code>in_thread</code> 创建三个线程（鼓、贝斯、旋律），体验更丰富的多线程音乐编排。</p>
+</article>
+
+<!-- 第7课 -->
+<article class="lesson" id="lesson7">
+  <div class="lesson-header">
+    <div class="lesson-num">07 ★</div>
+    <div class="lesson-title">
+      <h3>多进程：乐团协作</h3>
+      <div class="subtitle">独立内存、消息传递、锁与死锁</div>
+    </div>
+  </div>
+  <div class="lesson-meta">
+    <div class="lesson-meta-item"><span class="label">音乐知识</span>乐团编制与角色（弦乐/木管/铜管/打击乐）、指挥的作用（速度统一、声部进入、力度平衡）、总谱与分谱、齐奏与协奏、声部间的问答呼应、乐团排练中的同步问题</div>
+    <div class="lesson-meta-item"><span class="label">编程知识</span>进程（process）概念、multiprocessing 模块、独立内存空间、进程间通信（Queue/Pipe）、进程池 Pool、锁（Lock）在多进程中的应用、死锁（deadlock）四个必要条件、并发 vs 并行的深入理解</div>
+    <div class="lesson-meta-item full"><span class="label">教学目标</span>理解进程与线程的本质区别（独立内存 vs 共享内存）；能用 multiprocessing 创建多进程程序；理解进程间通信的消息传递模型；理解死锁的四个条件及避免策略；能从乐团协作角度分析并发问题。</div>
+  </div>
+  <div class="mapping-badge">类比关系：乐团 / 指挥 / 乐手 ↔ 多进程 / 调度器 / 独立内存与消息传递</div>
+
+  <div class="task-box task-teacher">
+    <h4><span class="icon">T</span>教师任务</h4>
+    <ol>
+      <li><strong>导入（10分钟）</strong>：回顾单乐器双声部=共享内存的线程，提问「乐团几十位乐手能直接读彼此大脑吗」，引出独立内存空间与消息传递；播放交响乐视频观察指挥的调度作用。
+        <table style="width:100%;font-size:0.9em;margin:10px 0;">
+        <tr><th>维度</th><th>线程（单乐器双声部）</th><th>进程（乐团乐手）</th></tr>
+        <tr><td>内存</td><td>共享（同一个大脑）</td><td>独立（各有各的大脑和分谱）</td></tr>
+        <tr><td>通信</td><td>直接读写共享变量</td><td>通过消息传递（Queue/Pipe）</td></tr>
+        <tr><td>创建开销</td><td>轻（分出精力奏响即可）</td><td>重（请一位新乐手成本高）</td></tr>
+        <tr><td>并行性</td><td>受 GIL 限制，并发为主</td><td>真正并行（多核心）</td></tr>
+        <tr><td>出错影响</td><td>一个线程崩溃可能影响整个进程</td><td>一个进程崩溃不影响其他进程</td></tr>
+        </table></li>
+      <li><strong>讲授（25分钟）</strong>：讲解 multiprocessing.Process 独立内存与 Queue 消息传递，演示多进程「乐团」：
+        <pre><code><span class="code-keyword">from</span> multiprocessing <span class="code-keyword">import</span> Process, Queue
+<span class="code-keyword">import</span> time
+
+<span class="code-keyword">def</span> <span class="code-func">violinist</span>(q, name):
+    <span class="code-string">"""小提琴手：等待指挥的信号，然后演奏"""</span>
+    signal = q.get()           <span class="code-comment"># 等待指挥的消息（阻塞）</span>
+    <span class="code-func">print</span>(<span class="code-string">f"{name} 收到信号: {signal}，开始演奏！"</span>, flush=<span class="code-keyword">True</span>)
+    <span class="code-keyword">for</span> note <span class="code-keyword">in</span> [<span class="code-string">'E5'</span>,<span class="code-string">'F#5'</span>,<span class="code-string">'G5'</span>,<span class="code-string">'A5'</span>]:
+        <span class="code-func">print</span>(<span class="code-string">f"{name} 演奏 {note}"</span>, flush=<span class="code-keyword">True</span>)
+        time.sleep(<span class="code-num">0.3</span>)
+
+<span class="keyword">if</span> __name__ == <span class="code-string">"__main__"</span>:
+    q = Queue()                <span class="code-comment"># 指挥的「传话本」</span>
+    p1 = Process(target=violinist, args=(q, <span class="code-string">"小提1"</span>))
+    p2 = Process(target=violinist, args=(q, <span class="code-string">"小提2"</span>))
+    p1.start(); p2.start()
+    time.sleep(<span class="code-num">1</span>)            <span class="code-comment"># 指挥等待乐手准备好</span>
+    q.put(<span class="code-string">"预备——起！"</span>)     <span class="code-comment"># 指挥发信号</span>
+    p1.join(); p2.join()</code></pre></li>
+      <li><strong>实践（45分钟）</strong>：请三名学生上台表演死锁情景剧（小提持弓等乐谱、大提持乐谱等椅子、钢琴持椅子等弓），讲解死锁四条件（互斥、持有并等待、不可抢占、循环等待）及打破方法，展示死锁代码：
+        <pre><code><span class="code-keyword">import</span> threading
+bow = threading.Lock()    <span class="code-comment"># 弓</span>
+sheet = threading.Lock()  <span class="code-comment"># 乐谱</span>
+
+<span class="code-keyword">def</span> <span class="code-func">violinist</span>():
+    <span class="code-keyword">with</span> bow:
+        <span class="code-func">print</span>(<span class="code-string">"小提拿到弓，等乐谱..."</span>)
+        <span class="code-keyword">with</span> sheet:
+            <span class="code-func">print</span>(<span class="code-string">"小提开始演奏"</span>)
+
+<span class="code-keyword">def</span> <span class="code-func">cellist</span>():
+    <span class="code-keyword">with</span> sheet:
+        <span class="code-func">print</span>(<span class="code-string">"大提拿到乐谱，等弓..."</span>)
+        <span class="code-keyword">with</span> bow:
+            <span class="code-func">print</span>(<span class="code-string">"大提开始演奏"</span>)</code></pre>
+        简要演示 Pool 并行处理多声部移调：
+        <pre><code><span class="code-keyword">from</span> multiprocessing <span class="code-keyword">import</span> Pool
+<span class="code-keyword">def</span> <span class="code-func">transpose_part</span>(notes, semitones):
+    <span class="code-keyword">return</span> [n + semitones <span class="code-keyword">for</span> n <span class="code-keyword">in</span> notes]
+
+<span class="code-keyword">if</span> __name__ == <span class="code-string">"__main__"</span>:
+    parts = [[<span class="code-num">60</span>,<span class="code-num">62</span>,<span class="code-num">64</span>], [<span class="code-num">55</span>,<span class="code-num">57</span>,<span class="code-num">59</span>], [<span class="code-num">48</span>,<span class="code-num">50</span>,<span class="code-num">52</span>]]
+    <span class="code-keyword">with</span> Pool(<span class="code-num">3</span>) <span class="code-keyword">as</span> p:
+        results = p.starmap(transpose_part,
+            [(part, <span class="code-num">2</span>) <span class="code-keyword">for</span> part <span class="code-keyword">in</span> parts])
+    <span class="code-comment"># 三个声部同时移调，真正并行</span></code></pre></li>
+      <li><strong>总结（10分钟）</strong>：对比总结——多线程=一个乐手左右手（共享内存、轻量、需锁），多进程=乐团多乐手（独立内存、重量、消息传递、真并行）；并发是「管理」很多事，并行是「同时做」很多事。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-student">
+    <h4><span class="icon">S</span>学生任务</h4>
+    <ol>
+      <li>用 multiprocessing 创建两个进程，分别模拟小提琴手和大提琴手——各自打印自己演奏的音符序列。用 Queue 实现「指挥发信号后两个乐手同时开始」。</li>
+      <li>写出死锁四个必要条件的音乐场景解释，并举一个生活中的死锁例子（如交通堵塞）。</li>
+      <li>课堂练习中的死锁代码，尝试用「按固定顺序获取锁」的方法修复它。</li>
+      <li>对比总结：用表格列出多线程和多进程在音乐类比、内存模型、通信方式、适用场景四个维度的区别。</li>
+      <li>挑战：用 Pool 并行分析三首不同乐曲的音符总数（模拟 CPU 密集任务），对比单进程和多进程的运行时间。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-design">
+    <h4><span class="icon">D</span>设计意图</h4>
+    <p>用「乐团协作」隐喻让独立内存、消息传递、死锁等抽象概念都有声音和画面；通过身体化学习让学生不仅知道什么是死锁，更理解如何避免，两课连续设计形成「乐手→乐团」的认知递进。</p>
+  </div>
+
+  <h4>代码要点</h4>
+  <pre><code><span class="code-keyword">from</span> multiprocessing <span class="code-keyword">import</span> Process, Queue, Pool, Lock
+<span class="code-keyword">import</span> time, os
+
+<span class="code-comment"># 1. 多进程 + Queue 消息传递（乐团同步）</span>
+<span class="code-keyword">def</span> <span class="code-func">musician</span>(q, name, part):
+    signal = q.get()
+    <span class="code-func">print</span>(<span class="code-string">f"[{os.getpid()}] {name} 收到: {signal}"</span>, flush=<span class="code-keyword">True</span>)
+    <span class="code-keyword">for</span> n <span class="code-keyword">in</span> part:
+        <span class="code-func">print</span>(<span class="code-string">f"{name} 演奏 {n}"</span>, flush=<span class="code-keyword">True</span>)
+        time.sleep(<span class="code-num">0.2</span>)
+
+<span class="code-keyword">if</span> __name__ == <span class="code-string">"__main__"</span>:
+    q = Queue()
+    parts = [(<span class="code-string">"小提琴"</span>, [<span class="code-string">'E5'</span>,<span class="code-string">'F#5'</span>,<span class="code-string">'G5'</span>]),
+             (<span class="code-string">"大提琴"</span>, [<span class="code-string">'C3'</span>,<span class="code-string">'D3'</span>,<span class="code-string">'E3'</span>])]
+    procs = [Process(target=musician, args=(q, n, p)) <span class="code-keyword">for</span> n, p <span class="code-keyword">in</span> parts]
+    <span class="code-keyword">for</span> p <span class="code-keyword">in</span> procs: p.start()
+    time.sleep(<span class="code-num">0.5</span>)
+    q.put(<span class="code-string">"预备——起！"</span>)
+    <span class="code-keyword">for</span> p <span class="code-keyword">in</span> procs: p.join()
+
+<span class="code-comment"># 2. 进程池：并行处理多个声部</span>
+<span class="code-keyword">def</span> <span class="code-func">analyze_part</span>(part_id, notes):
+    <span class="code-keyword">return</span> part_id, <span class="code-func">len</span>(notes), <span class="code-func">sum</span>(notes)/<span class="code-func">len</span>(notes)
+
+<span class="code-keyword">if</span> __name__ == <span class="code-string">"__main__"</span>:
+    data = [(<span class="code-string">"Vln"</span>, [<span class="code-num">60</span>,<span class="code-num">62</span>,<span class="code-num">64</span>]),
+            (<span class="code-string">"Vla"</span>, [<span class="code-num">55</span>,<span class="code-num">57</span>,<span class="code-num">59</span>]),
+            (<span class="code-string">"Vc"</span>, [<span class="code-num">48</span>,<span class="code-num">50</span>,<span class="code-num">52</span>])]
+    <span class="code-keyword">with</span> Pool(<span class="code-num">3</span>) <span class="code-keyword">as</span> pool:
+        results = pool.starmap(analyze_part, data)
+    <span class="code-comment"># [('Vln',3,62), ('Vla',3,57), ('Vc',3,50)]</span></code></pre>
+
+  <p><strong>课堂产出</strong>：一个多进程「虚拟乐团」程序 + 死锁分析笔记 + 线程/进程对比表。<br>
+  <strong>课后拓展</strong>：调研 Python 的 <code>asyncio</code> 异步编程模型，思考它更接近多线程还是多进程？在音乐编程中，异步 I/O 可以用于什么场景（如同时加载多个 MIDI 文件）？</p>
+</article>
+
+<!-- 第8课 -->
+<article class="lesson" id="lesson8">
+  <div class="lesson-header">
+    <div class="lesson-num">08</div>
+    <div class="lesson-title">
+      <h3>音乐表情的参数化</h3>
+      <div class="subtitle">力度、速度、演奏法与函数参数</div>
+    </div>
+  </div>
+  <div class="lesson-meta">
+    <div class="lesson-meta-item"><span class="label">音乐知识</span>力度层级（ppp-fff）、渐强（cresc.）与渐弱（dim.）、速度标记（Largo/Grave/Andante/Allegro/Presto 及 BPM）、表情术语、连奏（legato）与断奏（staccato）、延音线</div>
+    <div class="lesson-meta-item"><span class="label">编程知识</span>函数参数进阶、默认参数、关键字参数、参数传递、变量作用域、循环实现渐变效果、线性插值概念</div>
+    <div class="lesson-meta-item full"><span class="label">教学目标</span>理解力度/速度可参数化；能用函数参数控制音乐的情绪表达；理解渐强渐弱的数学本质（插值）；能为作品设计完整的力度和速度方案。</div>
+  </div>
+  <div class="mapping-badge">类比关系：力度 / 速度 / 演奏法 ↔ 函数参数 / 参数化 / 插值</div>
+
+  <div class="task-box task-teacher">
+    <h4><span class="icon">T</span>教师任务</h4>
+    <ol>
+      <li><strong>导入（10分钟）</strong>：用同一段旋律做三次对比播放（pp+慢速、ff+快速、mp+行板），让学生感受力度速度对情绪的决定性影响。</li>
+      <li><strong>讲授（25分钟）</strong>：演示 dynamics.Dynamic、tempo.MetronomeMark、articulations，定义参数化乐句函数：
+        <pre><code><span class="code-keyword">def</span> <span class="code-func">play_phrase</span>(dyn=<span class="code-string">'mf'</span>, tempo=<span class="code-num">100</span>, staccato=<span class="code-keyword">False</span>):
+    p = stream.Part()
+    p.<span class="code-func">append</span>(tempo.MetronomeMark(number=tempo))
+    p.<span class="code-func">append</span>(dynamics.Dynamic(dyn))
+    <span class="code-comment"># ... 添加音符 ...</span>
+    <span class="code-keyword">return</span> p</code></pre>
+      讲解渐强渐弱的本质是力度参数在时间轴上的线性插值。</li>
+      <li><strong>实践（45分钟）</strong>：学生为同一旋律创作三个情绪版本（轻柔/激昂/神秘），用循环实现 p→mp→mf→f 的渐强，挑战渐快效果。</li>
+      <li><strong>总结（10分钟）</strong>：学生「点歌」选择参数现场播放对比，总结参数化让同一函数产生不同音乐表情。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-student">
+    <h4><span class="icon">S</span>学生任务</h4>
+    <ol>
+      <li>为第 6 课的单乐器双声部作品设计力度和速度方案，在乐谱中添加 Dynamic 和 MetronomeMark 标记。</li>
+      <li>创作同一段旋律的三个「情绪版本」：轻柔版（p + Andante + legato）、激昂版（f + Allegro + staccato）、神秘版（pp + Largo），对比听感。</li>
+      <li>用循环实现一段渐强效果：力度从 p 逐步增加到 f，每个小节增加一个力度层级（p→mp→mf→f）。</li>
+      <li>挑战：实现渐快（accelerando）——速度从 60 BPM 逐步增加到 120 BPM。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-design">
+    <h4><span class="icon">D</span>设计意图</h4>
+    <p>力度、速度是音乐中的「参数」，让学生在审美体验中理解参数化思想；渐强渐弱的算法实现将线性插值这一计算机科学基础概念作为「让声音逐渐变大」的音乐需求出现，实现需求驱动的学习。</p>
+  </div>
+
+  <p><strong>课堂产出</strong>：同一旋律的三个情绪版本 + 一段包含渐强渐弱的乐曲。<br>
+  <strong>课后拓展</strong>：思考「渐强除了线性插值，还可以用什么曲线？」（对数曲线、指数曲线），尝试用不同曲线实现渐强，感受不同渐强曲线的音乐效果。</p>
+</article>
+
+<!-- 第9课 -->
+<article class="lesson" id="lesson9">
+  <div class="lesson-header">
+    <div class="lesson-num">09</div>
+    <div class="lesson-title">
+      <h3>和弦的数据结构</h3>
+      <div class="subtitle">三和弦、七和弦与字典集合</div>
+    </div>
+  </div>
+  <div class="lesson-meta">
+    <div class="lesson-meta-item"><span class="label">音乐知识</span>三和弦（大三/小三/减三/增三）的构成、七和弦（属七/大七/小七/半减七/减七）、和弦转位、和弦功能（主 T/下属 S/属 D）、罗马数字标记、I-IV-V-I 和弦进行、分解和弦与柱式和弦</div>
+    <div class="lesson-meta-item"><span class="label">编程知识</span>字典（dict）与集合（set）、嵌套列表/字典、数据结构选择、用数据结构表示知识（和弦类型表）、music21 chord 模块、和弦分析方法</div>
+    <div class="lesson-meta-item full"><span class="label">教学目标</span>理解和弦的数学结构（半音数集合）；能用字典/集合表示和分析和弦；掌握 I-IV-V-I 等基本和弦进行；能为旋律配简易和弦伴奏。</div>
+  </div>
+  <div class="mapping-badge">类比关系：和弦 / 功能和声 ↔ 字典 / 集合 / 数据结构</div>
+
+  <div class="task-box task-teacher">
+    <h4><span class="icon">T</span>教师任务</h4>
+    <ol>
+      <li><strong>导入（10分钟）</strong>：弹出 C 大三和弦（明亮稳定）、C 减三和弦（紧张）、C 属七和弦（需解决），讲解和弦由根音按特定半音数叠加构成（大三=[0,4,7]、小三=[0,3,7]、减三=[0,3,6]、增三=[0,4,8]）。</li>
+      <li><strong>讲授（25分钟）</strong>：演示用字典存储和弦类型定义及 music21 Chord 对象的分析方法（isMajorTriad、inversion、quality），讲解 I-IV-V-I 功能和声进行：
+        <pre><code>CHORD_TYPES = {
+    <span class="code-string">'major'</span>: [<span class="code-num">0</span>,<span class="code-num">4</span>,<span class="code-num">7</span>],
+    <span class="code-string">'minor'</span>: [<span class="code-num">0</span>,<span class="code-num">3</span>,<span class="code-num">7</span>],
+    <span class="code-string">'diminished'</span>: [<span class="code-num">0</span>,<span class="code-num">3</span>,<span class="code-num">6</span>],
+    <span class="code-string">'dominant7'</span>: [<span class="code-num">0</span>,<span class="code-num">4</span>,<span class="code-num">7</span>,<span class="code-num">10</span>]
+}</code></pre></li>
+      <li><strong>实践（45分钟）</strong>：学生用字典定义 6 种和弦类型并编写 make_chord 函数，为旋律配 I-IV-V-I 进行，对比柱式与分解和弦效果；挑战流行四和弦 vi-IV-I-V。</li>
+      <li><strong>总结（10分钟）</strong>：学生展示配和弦作品，总结和弦的数学结构与功能逻辑，为后续马尔可夫链的状态转移埋下伏笔。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-student">
+    <h4><span class="icon">S</span>学生任务</h4>
+    <ol>
+      <li>用字典定义至少 6 种和弦类型（大三、小三、减三、增三、属七、大七），编写函数 <code>make_chord(root, chord_type)</code> 返回 Chord 对象。</li>
+      <li>用 music21 的分析方法判断若干和弦的性质（大三/小三/减三）和转位。</li>
+      <li>为自己之前创作的旋律配 I-IV-V-I 和弦进行，每小节换一个和弦，用柱式和弦或分解和弦方式演奏。</li>
+      <li>挑战：尝试 vi-IV-I-V（「流行四和弦」进行，如 C-Am-F-G），对比 I-IV-V-I 的听感差异。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-design">
+    <h4><span class="icon">D</span>设计意图</h4>
+    <p>和弦是音乐的「数据结构」，用字典存储和弦定义是知识表示的典型案例；功能和声进行引入了「状态转移」概念，为第 14 课马尔可夫链铺垫。</p>
+  </div>
+
+  <p><strong>课堂产出</strong>：一段带和弦伴奏的旋律，至少包含 4 个不同和弦，有基本的和声逻辑。<br>
+  <strong>课后拓展</strong>：用代码统计自己作品中各类和弦的使用次数，思考和弦选择与音乐情绪的关系。</p>
+</article>
+
+<!-- 模块三 -->
+<div class="module-divider">
+  <div class="module-label">模块三 / 第 10-13 课</div>
+  <h2>算法的旋律——数学、逻辑与音乐生成</h2>
+  <p>理解模进、转调背后的迭代与映射变换；更进一步地，探究卡农的递归结构和变奏的高阶函数，体会数学与音乐的深层联系。</p>
+</div>
+
+<!-- 第10课 -->
+<article class="lesson" id="lesson10">
+  <div class="lesson-header">
+    <div class="lesson-num">10</div>
+    <div class="lesson-title">
+      <h3>模进的迭代算法</h3>
+      <div class="subtitle">动机发展与循环嵌套</div>
+    </div>
+  </div>
+  <div class="lesson-meta">
+    <div class="lesson-meta-item"><span class="label">音乐知识</span>模进（sequence/模进）、严格模进与守调模进、上行模进与下行模进、动机发展手法（重复、变化重复、模进、扩展、压缩、倒影）、模进在巴洛克和古典音乐中的应用</div>
+    <div class="lesson-meta-item"><span class="label">编程知识</span>迭代算法、嵌套循环、transpose() 方法、循环变量与音高偏移、列表推导式进阶、算法设计</div>
+    <div class="lesson-meta-item full"><span class="label">教学目标</span>理解模进与迭代算法的同构关系；能用循环和 transpose 生成上行/下行模进；掌握严格模进与守调模进的算法差异；能将模进作为动机发展手法用于创作。</div>
+  </div>
+  <div class="mapping-badge">类比关系：模进 / 动机发展 ↔ 迭代 / 嵌套循环 / transpose</div>
+
+  <div class="task-box task-teacher">
+    <h4><span class="icon">T</span>教师任务</h4>
+    <ol>
+      <li><strong>导入（10分钟）</strong>：播放巴赫《C 大调前奏曲》开头，让学生听出同一音型在不同高度上不断重复的上行模进模式，讲解模进保持动机的「形状」但改变音高位置。</li>
+      <li><strong>讲授（25分钟）</strong>：定义动机后用循环在不同高度重复，演示严格模进与守调模进的区别：
+        <pre><code><span class="code-keyword">def</span> <span class="code-func">make_motive</span>():
+    m = stream.Measure()
+    m.<span class="code-func">append</span>([note.Note(p, quarterLength=<span class="code-num">0.5</span>)
+             <span class="code-keyword">for</span> p <span class="code-keyword">in</span> [<span class="code-string">'C4'</span>,<span class="code-string">'E4'</span>,<span class="code-string">'G4'</span>,<span class="code-string">'E4'</span>]])
+    <span class="code-keyword">return</span> m
+
+<span class="code-comment"># 上行模进：每次移高 2 个半音（一个全音）</span>
+sequence = stream.Stream()
+<span class="code-keyword">for</span> i <span class="code-keyword">in</span> <span class="code-func">range</span>(<span class="code-num">4</span>):
+    motive = <span class="code-func">make_motive</span>()
+    <span class="code-keyword">for</span> n <span class="code-keyword">in</span> motive.notes:
+        n.<span class="code-func">transpose</span>(i * <span class="code-num">2</span>, inPlace=<span class="code-keyword">True</span>)
+    sequence.<span class="code-func">append</span>(motive)</code></pre></li>
+      <li><strong>实践（45分钟）</strong>：学生创作 2-4 小节动机，用迭代生成上行/下行模进，对比严格与守调模进听感，尝试不同步长（1/2/3/5 半音），挑战倒影手法。</li>
+      <li><strong>总结（10分钟）</strong>：学生展示模进作品，总结模进即「同一模式在不同数据上重复」的迭代本质。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-student">
+    <h4><span class="icon">S</span>学生任务</h4>
+    <ol>
+      <li>创作一个 2-4 小节的动机，用迭代算法生成上行模进（每次移高 2 半音，重复 4 次）和下行模进（每次移低 2 半音）。</li>
+      <li>对比严格模进和守调模进的听感差异（严格模进可能「跑调」到其他调，守调模进始终在原调内）。</li>
+      <li>尝试不同的模进步长（移高 1 半音/2 半音/3 半音/5 半音），感受不同步长的模进效果。</li>
+      <li>挑战：实现「倒影」手法——动机的音程方向反转（上行变下行，下行变上行）。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-design">
+    <h4><span class="icon">D</span>设计意图</h4>
+    <p>模进是「同一模式在不同数据上重复」的迭代本质，为 for 循环提供了审美层面的应用；严格模进与守调模进的对比引出「精确复制 vs 上下文自适应」的计算问题，倒影手法则为第 13 课映射变换铺垫。</p>
+  </div>
+
+  <p><strong>课堂产出</strong>：一段包含上行或下行模进发展的 8 小节乐曲，能清晰听出动机的移动。<br>
+  <strong>课后拓展</strong>：分析一首自己喜欢的歌曲，找出其中使用模进手法的段落，用代码重现它。</p>
+</article>
+
+<!-- 第11课 -->
+<article class="lesson" id="lesson11">
+  <div class="lesson-header">
+    <div class="lesson-num">11 ★</div>
+    <div class="lesson-title">
+      <h3>卡农的递归结构</h3>
+      <div class="subtitle">复调对位与递归函数</div>
+    </div>
+  </div>
+  <div class="lesson-meta">
+    <div class="lesson-meta-item"><span class="label">音乐知识</span>卡农（Canon）的结构、正格卡农与变格卡农（增时/减时/倒影/逆行卡农）、主题与答题、声部的依次进入、赋格（Fugue）基本概念、对位法入门（点对点/音对音）、帕赫贝尔《D 大调卡农》分析</div>
+    <div class="lesson-meta-item"><span class="label">编程知识</span>递归函数、基线条件（base case）与递归步骤、调用栈（call stack）、递归与迭代的对比、多声部的递归生成、Part 的偏移插入</div>
+    <div class="lesson-meta-item full"><span class="label">教学目标</span>理解卡农与递归的深层同构；能用递归函数生成多声部卡农；理解递归调用栈与声部进入顺序的对应；能区分递归与迭代并选择合适的方法。</div>
+  </div>
+  <div class="mapping-badge">类比关系：卡农 / 赋格 / 对位 ↔ 递归 / 调用栈 / 延迟执行</div>
+
+  <div class="task-box task-teacher">
+    <h4><span class="icon">T</span>教师任务</h4>
+    <ol>
+      <li><strong>导入（10分钟）</strong>：播放帕赫贝尔《D 大调卡农》，让学生听三个声部依次进入、互相追逐，在白板上画声部进入时间图：
+        <pre>声部1: |主题---------------------------|
+声部2:      |主题----------------------|
+声部3:           |主题-----------------|</pre></li>
+      <li><strong>讲授（25分钟）</strong>：先用迭代实现多 Part 延迟插入，再引出递归方式，讲解基线条件与递归步骤，用「楼梯比喻」解释调用栈（LIFO）：
+        <pre><code><span class="code-keyword">def</span> <span class="code-func">make_canon</span>(voice_num, delay, total_voices=<span class="code-num">3</span>):
+    <span class="code-string">"""递归生成卡农：每调用一层，添加一个延迟进入的声部"""</span>
+    score = stream.Score()
+    <span class="code-comment"># 基线条件：所有声部已添加完毕</span>
+    <span class="code-keyword">if</span> voice_num > total_voices:
+        <span class="code-keyword">return</span> score
+    <span class="code-comment"># 创建当前声部的主题</span>
+    part = stream.Part()
+    part.<span class="code-func">append</span>(<span class="code-func">make_theme</span>())
+    score.<span class="code-func">insert</span>(delay, part)  <span class="code-comment"># 在 delay 位置插入</span>
+    <span class="code-comment"># 递归：添加下一个声部，延迟增加 2 小节</span>
+    score.<span class="code-func">append</span>(<span class="code-func">make_canon</span>(voice_num + <span class="code-num">1</span>,
+                          delay + <span class="code-num">8</span>, total_voices).parts)
+    <span class="code-keyword">return</span> score</code></pre></li>
+      <li><strong>实践（45分钟）</strong>：学生创作 4-8 小节卡农主题，用递归函数生成二部或三部卡农（每声部延迟 2 小节），添加 print 观察调用栈，对比迭代与递归版；挑战逆行或倒影卡农。</li>
+      <li><strong>总结（10分钟）</strong>：学生展示卡农作品，总结声部延迟进入对应递归调用层、声部堆叠对应调用栈堆叠的同构关系。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-student">
+    <h4><span class="icon">S</span>学生任务</h4>
+    <ol>
+      <li>创作一个 4-8 小节的卡农主题（要求旋律流畅、结尾能与开头衔接）。</li>
+      <li>用递归函数生成二部或三部卡农，每声部延迟 2 小节进入。</li>
+      <li>在代码中添加 print 语句，观察递归调用的顺序和深度，画出调用栈图。</li>
+      <li>对比迭代版和递归版的代码，思考各自的优缺点。</li>
+      <li>挑战：尝试逆行卡农（第二个声部倒着演奏主题）或倒影卡农。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-design">
+    <h4><span class="icon">D</span>设计意图</h4>
+    <p>卡农↔递归是较难理解、但本质相同的跨学科映射，每个声部的延迟进入对应一层递归调用，声部堆叠对应调用栈堆叠；学生「听见递归」避免枯燥记忆，帕赫贝尔卡农分析同时承载了文化理解目标。</p>
+  </div>
+
+  <p><strong>课堂产出</strong>：一段二部或三部卡农，声部依次进入形成追逐效果，代码中使用了递归函数。<br>
+  <strong>课后拓展</strong>：用代码实现帕赫贝尔卡农的和弦进行（D-A-Bm-F#m-G-D-G-A），并在其上方创作自己的卡农主题。</p>
+</article>
+
+<!-- 第12课 -->
+<article class="lesson" id="lesson12">
+  <div class="lesson-header">
+    <div class="lesson-num">12 ★</div>
+    <div class="lesson-title">
+      <h3>变奏的多态艺术</h3>
+      <div class="subtitle">主题变形与高阶函数</div>
+    </div>
+  </div>
+  <div class="lesson-meta">
+    <div class="lesson-meta-item"><span class="label">音乐知识</span>变奏曲式（Theme and Variations）、变奏手法（装饰加花、节奏加密/放宽、和声变奏、调式转换大小调互换、卡农式变奏）、莫扎特《小星星变奏曲》K.265 赏析、变奏与即兴的关系</div>
+    <div class="lesson-meta-item"><span class="label">编程知识</span>高阶函数（函数作为参数和返回值）、lambda 表达式、map/filter、策略模式、多态概念、函数式编程思想入门</div>
+    <div class="lesson-meta-item full"><span class="label">教学目标</span>理解变奏与多态/高阶函数的对应；能用不同的「变奏函数」处理同一主题生成变奏；掌握高阶函数和 lambda 的基本用法；体会「同一接口、不同实现」的思想。</div>
+  </div>
+  <div class="mapping-badge">类比关系：变奏曲 / 主题变形 ↔ 高阶函数 / 多态 / map</div>
+
+  <div class="task-box task-teacher">
+    <h4><span class="icon">T</span>教师任务</h4>
+    <ol>
+      <li><strong>导入（10分钟）</strong>：播放莫扎特《小星星变奏曲》K.265 主题与前 3 个变奏（加花、节奏加密、转小调），让学生听辨「骨架音还在但每次换了外衣」，讲解常见变奏手法。</li>
+      <li><strong>讲授（25分钟）</strong>：定义主题函数和多个变奏函数（装饰加花、节奏加密、转小调），引入高阶函数 apply_variation(theme, func) 统一调用，讲解多态与 lambda：
+        <pre><code><span class="code-keyword">def</span> <span class="code-func">var_ornament</span>(theme):
+    <span class="code-string">"""装饰加花：在每个长音前插入经过音"""</span>
+    ...
+<span class="code-keyword">def</span> <span class="code-func">var_rhythm</span>(theme):
+    <span class="code-string">"""节奏加密：所有音符时值减半，重复一次"""</span>
+    ...
+<span class="code-keyword">def</span> <span class="code-func">var_minor</span>(theme):
+    <span class="code-string">"""转小调：将大调三级、六级、七级音降半音"""</span>
+    ...</code></pre></li>
+      <li><strong>实践（45分钟）</strong>：学生为自创主题编写至少 2 种变奏函数，用高阶函数统一调用，尝试调式转换变奏，组合为完整变奏曲（主题→变奏1→变奏2→变奏3→主题再现）。</li>
+      <li><strong>总结（10分钟）</strong>：学生展示变奏曲，总结「同一主题不同说法」即多态——同一接口传入不同函数产生不同结果，理解「函数也是数据」。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-student">
+    <h4><span class="icon">S</span>学生任务</h4>
+    <ol>
+      <li>为自创主题编写至少 2 种变奏函数（如装饰加花版、节奏加密版）。</li>
+      <li>用高阶函数 <code>apply_variation(theme, func)</code> 统一调用不同变奏。</li>
+      <li>尝试调式转换变奏：将大调主题转为小调（降三、六、七级）。</li>
+      <li>将主题和所有变奏组合为一首完整的变奏曲（主题→变奏1→变奏2→变奏3→主题再现）。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-design">
+    <h4><span class="icon">D</span>设计意图</h4>
+    <p>变奏曲是「同一主题的变换再现」，这是多态和高阶函数的核心思想；把变奏函数当作参数传递，让学生直观理解「函数也是数据」这一函数式编程观念，同时锻炼 Stream 遍历变换的数据处理能力。</p>
+  </div>
+
+  <p><strong>课堂产出</strong>：一个主题 + 至少 2 个变奏的完整变奏曲，代码中使用了高阶函数。<br>
+  <strong>课后拓展</strong>：尝试「卡农式变奏」——把主题变成卡农形式（第 11 课技术），作为变奏的一种。</p>
+</article>
+
+<!-- 第13课 -->
+<article class="lesson" id="lesson13">
+  <div class="lesson-header">
+    <div class="lesson-num">13</div>
+    <div class="lesson-title">
+      <h3>转调的空间映射</h3>
+      <div class="subtitle">音高变换与函数映射</div>
+    </div>
+  </div>
+  <div class="lesson-meta">
+    <div class="lesson-meta-item"><span class="label">音乐知识</span>转调（modulation）与移调（transposition）的区别、近关系转调（属调/下属调/关系小调）、同主音大小调转换（C大调↔c小调）、转调的情绪转折作用、流行歌曲中的「最后一段升调」手法、音高空间的循环结构</div>
+    <div class="lesson-meta-item"><span class="label">编程知识</span>map() 函数、列表推导式、函数变换（transformation）、字典映射、模 12 运算（%）、lambda 与函数组合、对数据集的批量操作</div>
+    <div class="lesson-meta-item full"><span class="label">教学目标</span>理解转调是音高空间的平移变换；能用 map/列表推导式对整段旋律做统一移调；理解模 12 运算与八度等价的数学关系；能为作品设计有表现力的转调方案。</div>
+  </div>
+  <div class="mapping-badge">类比关系：转调 / 移调 ↔ 映射 / 函数变换 / 模12运算</div>
+
+  <div class="task-box task-teacher">
+    <h4><span class="icon">T</span>教师任务</h4>
+    <ol>
+      <li><strong>导入（10分钟）</strong>：播放流行歌曲「最后一段升调」案例（如《我心永恒》），让学生感受转调的情绪提升，讲解转调即「换房间说话」——音程关系不变但整体音高位置改变。</li>
+      <li><strong>讲授（25分钟）</strong>：引入音高空间的时钟模型（12 半音模 12），讲解移调即 (x+N) mod 12 的平移变换、八度等价的数学性质及近关系调；演示用列表推导式和 map 对整段旋律统一移调，以及同主音大小调转换。</li>
+      <li><strong>实践（45分钟）</strong>：学生将作品整体移高 2 半音（D 大调）和 5 半音（F 大调）对比听感，设计 C 大调→G 大调的转调点制造情绪上扬，实现 major_to_minor 函数；挑战用字典实现音名→MIDI 映射验证模 12。</li>
+      <li><strong>总结（10分钟）</strong>：学生展示转调作品，总结转调即「对所有音符施加统一函数变换」的 map 操作本质。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-student">
+    <h4><span class="icon">S</span>学生任务</h4>
+    <ol>
+      <li>用列表推导式将自己之前的作品整体移高 2 个半音（D 大调）和 5 个半音（F 大调），对比不同调高的听感。</li>
+      <li>为作品设计一个转调点：前半段在 C 大调，后半段转到 G 大调（属调），制造情绪上扬的效果。</li>
+      <li>实现同主音大小调转换函数 <code>major_to_minor(theme)</code>，将大调主题转为同名小调。</li>
+      <li>挑战：用字典实现「音名→MIDI 编号」的映射表，并用它验证模 12 运算。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-design">
+    <h4><span class="icon">D</span>设计意图</h4>
+    <p>转调是「对所有音符施加统一函数变换」的 map 操作，模 12 运算连接了数学（同余/循环群）与音乐（八度等价）；流行歌曲升调案例让抽象的函数映射有了情感共鸣。</p>
+  </div>
+
+  <p><strong>课堂产出</strong>：一首包含转调的乐曲，转调前后有明显的情绪对比，代码中使用了 map 或列表推导式。<br>
+  <strong>课后拓展</strong>：研究五度圈（Circle of Fifths），用代码生成五度圈中各调的音阶，可视化它们之间的关系。</p>
+</article>
+
+<!-- 模块四 -->
+<div class="module-divider">
+  <div class="module-label">模块四 / 第 14-16 课</div>
+  <h2>创作的计算——风格建模、面向对象与综合项目</h2>
+  <p>高中段需要整合前 13 课所学完成结课作品；本科段进一步引入马尔可夫链风格建模和面向对象编程（音色与配器），最终完成原创作品并在「音乐会」上展示答辩。</p>
+</div>
+
+<!-- 第14课 -->
+<article class="lesson" id="lesson14">
+  <div class="lesson-header">
+    <div class="lesson-num">14 ★</div>
+    <div class="lesson-title">
+      <h3>风格建模与马尔可夫链</h3>
+      <div class="subtitle">语料库分析与生成式作曲</div>
+    </div>
+  </div>
+  <div class="lesson-meta">
+    <div class="lesson-meta-item"><span class="label">音乐知识</span>音乐语料库（corpus）概念、风格模仿、旋律进行的统计规律（音程分布、节奏分布）、巴赫众赞歌的和声逻辑、计算音乐学入门、AI 音乐生成的基本原理与伦理</div>
+    <div class="lesson-meta-item"><span class="label">编程知识</span>字典建模与嵌套字典、马尔可夫链（一阶/二阶）、频率统计与条件概率、music21 corpus 模块、文件读写、数据清洗、 Counter 计数器</div>
+    <div class="lesson-meta-item full"><span class="label">教学目标</span>理解马尔可夫链的基本原理；能用字典构建音高转移概率模型；能用 music21 corpus 分析经典作品并生成风格化旋律；理解 AI 音乐生成的基本思路和局限。</div>
+  </div>
+  <div class="mapping-badge">类比关系：风格模仿 / 语料分析 ↔ 马尔可夫链 / 字典建模 / 统计</div>
+
+  <div class="task-box task-teacher">
+    <h4><span class="icon">T</span>教师任务</h4>
+    <ol>
+      <li><strong>导入（10分钟）</strong>：提问「巴赫的风格到底是什么」，引导学生发现风格是音符之间的连接规律——统计「什么音后面接什么音」的概率就能生成风格化旋律，引出马尔可夫链。</li>
+      <li><strong>讲授（25分钟）</strong>：演示用 music21 corpus 分析巴赫众赞歌并统计音程转移，再根据概率随机生成新旋律：
+        <p>第一步——分析语料：</p>
+        <pre><code><span class="code-keyword">from</span> music21 <span class="code-keyword">import</span> *
+<span class="code-keyword">from</span> collections <span class="code-keyword">import</span> Counter
+
+<span class="code-comment"># 加载巴赫众赞歌 BWV 256</span>
+bwv = corpus.<span class="code-func">parse</span>(<span class="code-string">'bwv256'</span>)
+notes = [n <span class="code-keyword">for</span> n <span class="code-keyword">in</span> bwv.<span class="code-func">recurse</span>().notes
+         <span class="code-keyword">if</span> <span class="code-func">isinstance</span>(n, note.Note)]
+
+<span class="code-comment"># 统计音程转移：当前音 -> 下一个音（以半音差计）</span>
+transitions = {}
+<span class="code-keyword">for</span> i <span class="code-keyword">in</span> <span class="code-func">range</span>(<span class="code-func">len</span>(notes)-<span class="code-num">1</span>):
+    interval = notes[i+<span class="code-num">1</span>].pitch.midi - notes[i].pitch.midi
+    current = notes[i].pitch.midi
+    <span class="code-keyword">if</span> current <span class="code-keyword">not in</span> transitions:
+        transitions[current] = []
+    transitions[current].<span class="code-func">append</span>(interval)</code></pre>
+        <p>第二步——生成新旋律：</p>
+        <pre><code><span class="code-keyword">import</span> random
+random.<span class="code-func">seed</span>(<span class="code-num">42</span>)
+current = <span class="code-num">60</span>  <span class="code-comment"># 从 C4 开始</span>
+melody = [note.Note(midi=current, quarterLength=<span class="code-num">1</span>)]
+<span class="code-keyword">for</span> _ <span class="code-keyword">in</span> <span class="code-func">range</span>(<span class="code-num">16</span>):
+    <span class="code-keyword">if</span> current <span class="code-keyword">in</span> transitions:
+        interval = random.<span class="code-func">choice</span>(transitions[current])
+        current += interval
+    melody.<span class="code-func">append</span>(note.Note(midi=current, quarterLength=<span class="code-num">1</span>))</code></pre>
+        讲解这就是 AI 音乐生成的基本原理（一阶马尔可夫链），现代模型（RNN/Transformer）核心思想一脉相承。</li>
+      <li><strong>实践（45分钟）</strong>：学生加载巴赫众赞歌提取女高音声部，统计音程转移频率，构建一阶马尔可夫链生成 16 小节旋律，尝试二阶链对比效果，并写下对「AI 生成音乐算创作吗」的思考。</li>
+      <li><strong>总结（10分钟）</strong>：讨论 AI 音乐伦理（机器生成是创作吗、AI 会取代作曲家吗），总结从数据中学习统计规律再生成新样本的 AIGC 本质。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-student">
+    <h4><span class="icon">S</span>学生任务</h4>
+    <ol>
+      <li>从 music21 corpus 中加载一首巴赫众赞歌，提取女高音（soprano）声部的所有音符。</li>
+      <li>统计音程转移频率，找出出现最多的前 5 种音程（验证「级进为主、大跳少见」的假设）。</li>
+      <li>构建一阶马尔可夫链，生成 16 小节的新旋律，与原曲对比听感。</li>
+      <li>尝试二阶马尔可夫链（根据前两个音预测第三个），对比生成效果。</li>
+      <li>思考并写下：你认为 AI 生成的音乐算「创作」吗？为什么？</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-design">
+    <h4><span class="icon">D</span>设计意图</h4>
+    <p>本课实现从「用代码创作音乐」到「用代码分析和理解音乐」的跃迁，学生亲手构建风格模型从而理解 AIGC「从数据中学习统计规律再生成新样本」的本质；伦理讨论回应了信息社会责任素养要求。</p>
+  </div>
+
+  <p><strong>课堂产出</strong>：一个基于巴赫语料库的马尔可夫链旋律生成器，以及一段关于 AI 音乐伦理的思考文字。<br>
+  <strong>课后拓展</strong>：尝试对两首不同风格的作品（如巴赫 vs. 流行歌曲）分别建模，对比它们的音程转移分布差异。</p>
+</article>
+
+<!-- 第15课 -->
+<article class="lesson" id="lesson15">
+  <div class="lesson-header">
+    <div class="lesson-num">15 ★</div>
+    <div class="lesson-title">
+      <h3>音色与配器</h3>
+      <div class="subtitle">MIDI、乐器法与面向对象编程</div>
+    </div>
+  </div>
+  <div class="lesson-meta">
+    <div class="lesson-meta-item"><span class="label">音乐知识</span>音色（Timbre）的物理基础（波形、泛音列、ADSR 包络）、乐器法（钢琴/弦乐/木管/铜管/打击乐的音色特征与音域）、MIDI 协议原理（音符开关、程序变更、控制器）、配器基础、合成器概念入门</div>
+    <div class="lesson-meta-item"><span class="label">编程知识</span>类（class）与对象（object）、属性与方法、<code>__init__</code> 构造函数、实例化、封装思想、music21 instrument 模块、自定义类设计</div>
+    <div class="lesson-meta-item full"><span class="label">教学目标</span>理解音色与类/对象的映射；能用不同乐器演奏同一旋律；掌握类的定义和实例化；能设计自定义类封装音乐逻辑；从「写脚本」进阶到「建模型」。</div>
+  </div>
+  <div class="mapping-badge">类比关系：音色 / 配器 / MIDI ↔ 类与对象 / 封装 / 实例化</div>
+
+  <div class="task-box task-teacher">
+    <h4><span class="icon">T</span>教师任务</h4>
+    <ol>
+      <li><strong>导入（10分钟）</strong>：用同一旋律分别以钢琴、小提琴、长笛、小号音色播放，让学生闭眼辨认，引出音色概念；简要讲解音色的物理基础（波形、泛音列、ADSR 包络）及 MIDI 协议原理（演奏指令而非音频）。</li>
+      <li><strong>讲授（25分钟）</strong>：演示 music21 内置乐器（instrument.Piano/Violin），正式引入类与对象——「乐器」是类，钢琴和小提琴是不同实例，同一音符交给不同实例产生不同音色，正是 OOP 核心：
+        <pre><code>piano_part = stream.Part()
+piano_part.<span class="code-func">insert</span>(<span class="code-num">0</span>, instrument.Piano())
+violin_part = stream.Part()
+violin_part.<span class="code-func">insert</span>(<span class="code-num">0</span>, instrument.Violin())</code></pre></li>
+      <li><strong>实践（45分钟）</strong>：学生为作品配器（至少 3 种乐器），定义自定义 Song 类封装标题、速度、声部列表和播放方法，对比不同乐器组合效果：
+        <pre><code><span class="code-keyword">class</span> <span class="code-func">Song</span>:
+    <span class="code-keyword">def</span> <span class="code-func">__init__</span>(self, title, tempo=<span class="code-num">120</span>):
+        self.title = title
+        self.tempo = tempo
+        self.parts = []
+    <span class="code-keyword">def</span> <span class="code-func">add_part</span>(self, part):
+        self.parts.<span class="code-func">append</span>(part)
+    <span class="code-keyword">def</span> <span class="code-func">play</span>(self):
+        score = stream.Score()
+        score.<span class="code-func">append</span>(self.parts)
+        score.<span class="code-func">show</span>(<span class="code-string">'midi'</span>)</code></pre>
+        挑战：定义 MelodyGenerator 类封装音阶与节奏参数。</li>
+      <li><strong>总结（10分钟）</strong>：学生展示配器作品，总结「同一数据、不同对象、不同表现」的封装思想，理解从「写脚本」到「建模型」的跃迁。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-student">
+    <h4><span class="icon">S</span>学生任务</h4>
+    <ol>
+      <li>为自己的作品配器：至少使用 3 种不同乐器（如主旋律用长笛、低音用大提琴、和声用钢琴），通过试听调整配器方案。</li>
+      <li>定义一个 <code>Instrument</code> 子类或 <code>Song</code> 类，将作品的标题、速度、声部列表和播放方法封装为对象。</li>
+      <li>对比同一旋律用不同乐器组合演奏的效果，记录自己的配器选择理由。</li>
+      <li>挑战：定义 <code>MelodyGenerator</code> 类，封装音阶、节奏模式等参数，提供 <code>generate()</code> 方法生成旋律。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-design">
+    <h4><span class="icon">D</span>设计意图</h4>
+    <p>「同一音符用不同乐器产生不同音色」让学生直观理解对象封装了数据和行为；MIDI 协议引入「指令与表现分离」思想，自定义 Song 类让学生自主设计类型方法，是计算思维从算法到建模的重要跃迁。</p>
+  </div>
+
+  <p><strong>课堂产出</strong>：一首含 3 种以上乐器配器的乐曲，代码中定义并使用了自定义类。<br>
+  <strong>课后拓展</strong>：研究 MIDI 控制器信息（CC#7 音量、CC#10 声像、CC#11 表情），尝试用代码实现自动声像移动（声音从左到右移动）。</p>
+</article>
+
+<!-- 第16课 -->
+<article class="lesson" id="lesson16">
+  <div class="lesson-header">
+    <div class="lesson-num">16</div>
+    <div class="lesson-title">
+      <h3>音乐会</h3>
+      <div class="subtitle">综合创作、作品展示与答辩</div>
+    </div>
+  </div>
+  <div class="lesson-meta">
+    <div class="lesson-meta-item"><span class="label">音乐知识</span>曲式结构（一段体/二段体/三段体/流行歌曲结构）、作品完整性、音乐表达与舞台呈现、创作说明写作</div>
+    <div class="lesson-meta-item"><span class="label">编程知识</span>项目整合、代码组织与重构、调试与优化、版本管理思想、技术文档写作、综合应用全课程编程概念</div>
+    <div class="lesson-meta-item full"><span class="label">教学目标</span>综合运用全课程所学完成一首有结构、有配器、有情感表达的原创音乐作品；能清晰阐述创作思路和技术实现；通过同伴互评发展审美判断力。</div>
+  </div>
+  <div class="mapping-badge">类比关系：曲式结构 / 作品完整性 ↔ 架构 / 设计模式 / 项目整合</div>
+
+  <div class="task-box task-teacher">
+    <h4><span class="icon">T</span>教师任务</h4>
+    <ol>
+      <li><strong>课前准备（学期初布置）</strong>：明确期末作品要求（至少 16 小节、2 声部、3 种音乐手法和 3 种编程概念），学生在最后一节课前提交乐谱+音频+源代码+创作说明。</li>
+      <li><strong>作品完善（10分钟）</strong>：学生课堂做最后整合调试和导出，教师巡回帮助解决多声部对齐、MIDI 导出等技术问题，鼓励同伴互助。</li>
+      <li><strong>音乐会（70分钟）</strong>：学生依次上台（3-4 分钟/人）播放作品、展示乐谱、简述创作思路与困难解决过程。</li>
+      <li><strong>互评与颁奖（10分钟）</strong>：学生用评分表互评，评选最佳旋律/配器/创意/代码/展示等奖项；教师总结课程，强调「音乐是可感知的代码，代码是形式化的音乐」。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-student">
+    <h4><span class="icon">S</span>学生任务</h4>
+    <ol>
+      <li>完成原创音乐作品的最终版本，确保代码正确运行、乐谱正确渲染、音频正常播放。</li>
+      <li>撰写创作说明（300-500 字），阐述创作意图、音乐手法、编程技术和遇到的困难及解决过程。</li>
+      <li>在音乐会上展示作品，清晰表达创作思路。</li>
+      <li>认真聆听同伴作品，填写互评表，给出建设性反馈。</li>
+      <li>反思整个课程的学习收获，完成课程自我评价表。</li>
+    </ol>
+  </div>
+
+  <div class="task-box task-design">
+    <h4><span class="icon">D</span>设计意图</h4>
+    <p>音乐会作为压轴项目，让学生综合运用所学知识，完成从「技能练习」到「独立创作」的跃迁；作品展示满足自我表达需求，创作说明与答辩训练元认知能力，同伴互评培养审美判断力。</p>
+  </div>
+
+  <p><strong>课堂产出</strong>：16 小节以上（高中学段）或一首完整的原创音乐作品（本科学段），含乐谱 + 音频 + 源代码 + 创作说明。<br>
+  <strong>课后延伸</strong>：优秀作品可制作成班级音乐专辑，或参加学校艺术节、科技创新大赛展示；鼓励学生将作品上传至 GitHub 或音乐平台分享。</p>
+</article>
+
+<!-- ===== 十二、课程结构总览 ===== -->
+<h2 id="ch12">十二、课程结构总览</h2>
+<div class="table-wrap">
+<table>
+  <thead><tr><th class="num">#</th><th>主题</th><th>音乐知识</th><th>编程知识</th><th>类比关系</th></tr></thead>
+  <tbody>
+    <tr><td colspan="6" style="background:var(--accent-light);font-weight:700;color:var(--accent);">模块一：声音与计算的基础</td></tr>
+    <tr><td class="num">1</td><td>音高的数字本质</td><td>MIDI、频率、十二平均律</td><td>变量、对象属性</td><td>音高↔对象/属性</td></tr>
+    <tr><td class="num">2</td><td>节奏的时间结构</td><td>时值、拍号、小节</td><td>列表、Stream 层次</td><td>节奏↔数据结构</td></tr>
+    <tr><td class="num">3</td><td>图灵机与图灵完备</td><td>乐谱作为指令序列、反复与状态</td><td>纸带、读写头、状态寄存器、转移函数</td><td>演奏↔图灵机计算</td></tr>
+    <tr><td class="num">4</td><td>曲式中的控制流</td><td>反复、跳房子、D.C.</td><td>if/else、循环</td><td>反复↔控制流</td></tr>
+    <tr><td colspan="6" style="background:var(--accent-light);font-weight:700;color:var(--accent);">模块二：结构与并发</td></tr>
+    <tr><td class="num">5</td><td>乐句的封装</td><td>动机、乐句、乐段</td><td>函数、模块化、作用域</td><td>乐句↔函数</td></tr>
+    <tr><td class="num">6 ★</td><td>多线程：单乐器双声部</td><td>左右手分工、踏板共享、节奏对齐</td><td>threading、共享内存、Lock、竞态条件</td><td>左右手↔多线程</td></tr>
+    <tr><td class="num">7 ★</td><td>多进程：乐团协作</td><td>乐团编制、指挥、总谱分谱</td><td>multiprocessing、Queue、Pool、死锁</td><td>乐团↔多进程</td></tr>
+    <tr><td class="num">8</td><td>音乐表情参数化</td><td>力度、速度、演奏法</td><td>函数参数、插值</td><td>力度↔参数</td></tr>
+    <tr><td class="num">9</td><td>和弦的数据结构</td><td>三/七和弦、功能和声</td><td>字典、集合、数据结构</td><td>和弦↔数据结构</td></tr>
+    <tr><td colspan="6" style="background:var(--accent-light);font-weight:700;color:var(--accent);">模块三：算法的旋律</td></tr>
+    <tr><td class="num">10</td><td>模进的迭代算法</td><td>模进、动机发展</td><td>迭代、嵌套循环、transpose</td><td>模进↔迭代</td></tr>
+    <tr><td class="num">11 ★</td><td>卡农的递归结构</td><td>卡农、赋格、对位</td><td>递归、调用栈</td><td>卡农↔递归</td></tr>
+    <tr><td class="num">12 ★</td><td>变奏的多态艺术</td><td>变奏曲式、变奏手法</td><td>高阶函数、lambda、多态</td><td>变奏↔多态</td></tr>
+    <tr><td class="num">13</td><td>转调的空间映射</td><td>转调、近关系调</td><td>map、模12运算、变换</td><td>转调↔映射</td></tr>
+    <tr><td colspan="6" style="background:var(--accent-light);font-weight:700;color:var(--accent);">模块四：创作的计算 </td></tr>
+    <tr><td class="num">14 ★</td><td>风格建模与马尔可夫链</td><td>语料库、风格分析</td><td>字典建模、马尔可夫链</td><td>风格↔统计模型</td></tr>
+    <tr><td class="num">15 ★</td><td>音色与配器</td><td>音色、乐器法、MIDI</td><td>类与对象、封装</td><td>音色↔类/对象</td></tr>
+    <tr><td class="num">16</td><td>音乐会</td><td>曲式、作品完整性</td><td>项目整合、代码组织</td><td>曲式↔架构</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ===== 十三、评价方式 ===== -->
+<h2 id="ch13">十三、评价方式</h2>
+<p>本课程采用<strong>过程性评价与终结性评价相结合</strong>、<strong>多维度 rubric</strong> 的评价体系，评价标准与高中音乐和信息技术两大课程标准的核心素养对接，强调创作过程、跨学科理解和反思能力。</p>
+
+<h3>13.1 评价维度与权重</h3>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>维度</th><th>权重</th><th>对接核心素养</th><th>评价标准</th></tr></thead>
+  <tbody>
+    <tr><td><strong>技术实现</strong></td><td>25%</td><td>计算思维</td><td>代码正确运行；使用了当节课核心编程概念；代码结构清晰、命名规范、有注释；能独立调试错误</td></tr>
+    <tr><td><strong>音乐创意</strong></td><td>25%</td><td>审美感知、艺术表现</td><td>旋律流畅、节奏有设计感；运用力度/速度/配器等表情手段；使用了课程所学音乐手法（模进/转调/变奏等）；音乐有情绪表达</td></tr>
+    <tr><td><strong>跨学科理解</strong></td><td>25%</td><td>计算思维+审美感知</td><td>能口头或书面解释「这段音乐对应哪段代码、这段代码实现了什么音乐效果」；能在新的音乐现象中识别对应的编程概念；理解音乐与数学/计算的深层联系</td></tr>
+    <tr><td><strong>学习过程</strong></td><td>15%</td><td>数字化学习与创新</td><td>积极尝试与迭代；遇到 bug 主动调试并解决；帮助同伴；课堂参与度；课后拓展完成情况</td></tr>
+    <tr><td><strong>作品展示</strong></td><td>10%</td><td>艺术表现+文化理解</td><td>毕业作品完整性；展示表达清晰；创作说明有深度；能回答同伴和教师的提问</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>13.2 评价构成</h3>
+<ul>
+  <li><strong>每节课课堂产出（50%）</strong>：每节课有一个小作品，教师给予星级+评语反馈。</li>
+  <li><strong>跨学科反思日志（15%）</strong>：每节课后学生记录「今天学到的音乐知识、编程知识、它们之间的关系，以及我还存在的疑问」。</li>
+  <li><strong>期中作品（15%，第 9 课后）</strong>：一首包含前 9 课知识点的乐曲或乐曲片段。</li>
+  <li><strong>期末毕业作品（20%，第 16 课）</strong>：完整原创作品 + 创作说明 + 现场展示与答辩。</li>
+</ul>
+
+<h3>13.3 评价原则</h3>
+<p>鉴于学生音乐基础和编程能力的差异，评价坚持「以进步幅度为重要参照」的原则：</p>
+<ul>
+  <li>对音乐基础较弱的学生，重点评价其编程概念的掌握、乐理知识的进步和尝试的勇气；</li>
+  <li>对编程基础较弱的学生，重点评价其音乐创意、审美判断和跨学科映射的理解；</li>
+  <li>对学有余力的学生，提供拓展挑战（如实现赋格、二阶马尔可夫链、自定义乐器类等），评价其探究深度；</li>
+  <li>鼓励同伴互助，互助表现纳入学习过程评价。</li>
+</ul>
+
+<!-- ===== 十四、跨学科设计亮点 ===== -->
+<h2 id="ch14">十四、课程的跨学科设计亮点</h2>
+
+<h3>14.1 音乐作为内容：从「感性接触」到「结构理解」</h3>
+<p>课程让学生在编程中学习音乐，培养学生计算思维和艺术素养。学生可在「用代码做音乐」的过程中理解音乐的组织形式。回应高中音乐课标的「从音响本体和音乐表现要素体验音乐美感，领悟作品表现意图」的要求。</p>
+
+<h3>14.2 编程作为工具：从「控制台输出」到「创造性表达」</h3>
+<p>传统编程课交互形式单调，学生难以获得情感共鸣。本课程打破次元边际，程序作为创作的乐器。学生可直观了解列表推导式、递归、高阶函数、数据结构、面向对象等编程概念。学生在真实的创作场景中习得计算思维，而非在抽象的习题中机械记忆语法。</p>
+
+<h3>14.3 数学作为桥梁：从「公式记忆」到「结构感知」</h3>
+<p>课程中的数学是音乐与编程的桥接：</p>
+<ul>
+  <li>十二平均律是等比数列（公比 2<sup>1/12</sup>），频率计算是指数运算；</li>
+  <li>音符时值是分数体系，小节约束是分数加法；</li>
+  <li>和弦类型是半音数集合（大三=[0,4,7]），和弦构建是组合数学；</li>
+  <li>转调是模 12 平移变换，八度等价是同余类；</li>
+  <li>渐强渐弱是线性插值；</li>
+  <li>马尔可夫链是条件概率与统计推断。</li>
+</ul>
+<p>学生用数学理解音乐、用代码实现数学，三个学科形成良性认知三角。</p>
+
+<h3>14.4 计算音乐学：从「消费者」到「研究者」</h3>
+<p>音乐风格建模是本课程区别于一般音乐编程课的标志性内容。学生能够成为音乐的<strong>研究者</strong>。用代码分析巴赫的作品，统计音程转移规律，构建模型并生成新音乐。这是 MIT 21M.383 等大学课程的核心方法在高中阶段的适切性转化，为学生打开了「计算音乐学」「音乐信息检索」「AI 创意应用」等前沿领域的窗口。</p>
+
+<h3>14.5 双重反馈机制：逻辑判断与审美判断并行</h3>
+<p>传统编程课只有一种反馈：代码能不能运行。本课程有两种反馈：</p>
+<ul>
+  <li><strong>逻辑反馈</strong>：代码是否正确运行（语法/逻辑错误）；</li>
+  <li><strong>审美反馈</strong>：音乐是否好听（和声/节奏/情感是否到位）。</li>
+</ul>
+<p>学生需要同时发展「计算正确性」和「审美判断力」。理性和感性的双管齐下，培养学生的完整思维。</p>
+
+<h3>14.6 设计思维贯穿始终</h3>
+<p>课后练习是「创作」，而非「刷题」。学生需要经历「构思→编写→试听→调试→迭代→分享」设计循环，在循环中培养创造力。期末音乐会要求学生从意图出发，选择合适的技术手段，反复打磨作品，并向他人阐述自己的设计决策。</p>
+
+<!-- ===== 十五、教学实施建议 ===== -->
+<h2 id="ch15">十五、教学实施建议</h2>
+
+<h3>15.1 课前准备</h3>
+<ul>
+  <li>确保设备安装 Python 3.9+、music21、MuseScore Studio 4，完成 MuseScore 路径配置</li>
+  <li>建立课程示例代码库，每节课的示例代码和练习模板提前分发；</li>
+  <li>准备音频/视频资源：MIT OCW 精选片段、经典音乐作品（巴赫众赞歌、莫扎特变奏曲、帕赫贝尔卡农等）；</li>
+  <li>教师应完整跑通所有 16 课的示例代码，准备常见报错和音乐问题的应对方案；</li>
+</ul>
+
+<h3>15.2 课堂组织</h3>
+<p>教师应遵循「课堂引入、先听音乐、再写代码」的原则，确保学生在理解音乐概念的基础上再进入编程实践。讲授环节应采用「边写边讲」的 live coding 方式，避免静态展示代码或幻灯片，应当让学生参与构建过程。</p>
+
+<h3>15.3 差异化教学</h3>
+<ul>
+  <li>设置「基础 + 挑战」分层任务：基础任务确保所有学生能完成核心目标，挑战任务供学有余力的学生深入；</li>
+  <li>提供音阶模板、和弦进行模板、旋律片段模板，降低「不知道写什么」的创作门槛；</li>
+  <li>对编程基础薄弱的学生，提供部分代码骨架（skeleton code），让其填空而非从零开始；</li>
+  <li>对音乐基础薄弱的学生，重点评价其编程概念的掌握和跨学科映射的理解；</li>
+  <li>建立同伴互助机制：鼓励学生之间互相调试代码、分享创作技巧。</li>
+</ul>
+
+<h3>15.4 常见问题与应对</h3>
+<div class="table-wrap">
+<table>
+  <thead><tr><th style="width:200px">问题</th><th>应对策略</th></tr></thead>
+  <tbody>
+    <tr><td>学生乐理基础差</td><td>课程在编程实践中嵌入乐理复习，不单独补课；提供「乐理速查卡」</td></tr>
+    <tr><td>Python 基础遗忘</td><td>前 4 课以「Python 回顾 + music21 新授」方式进行；提供 Python 语法速查表</td></tr>
+    <tr><td>代码报错导致挫败</td><td>建立「调试三步法」：读错误信息→定位行号→检查最近修改；鼓励同伴互助；教师准备常见错误 FAQ</td></tr>
+    <tr><td>创作瓶颈「不知道写什么」</td><td>提供音阶模板、和弦进行模板、节奏型库；允许从模仿经典作品开始；鼓励「先做出来再改好」</td></tr>
+    <tr><td>递归等高阶概念难理解</td><td>充分使用可视化（声部进入图、调用栈图），用卡农的听觉体验建立直觉；不要求一次讲透，允许在后续课程中反复接触</td></tr>
+    <tr><td>环境配置问题</td><td>优先使用云端 Jupyter 环境避免逐台配置；课前准备环境检测脚本；配备助教或技术支持人员</td></tr>
+    <tr><td>课时不足</td><td>部分乐理讲解和代码练习可布置为课前预习；第 16 课的作品完善可延伸至课外；核心代码每课控制在 30 行以内</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>15.5 跨学科协作模式</h3>
+<p>本课程理想情况下由<strong>音乐教师与信息技术教师协同授课</strong>：音乐教师负责乐理导入、作品赏析和审美评价，信息技术教师负责编程讲授和技术指导。若只能由一位教师承担，建议音乐教师侧重音乐内容、借助代码模板降低编程门槛，或信息技术教师借助课程提供的乐理讲解材料和音频资源弥补音乐专业知识。学校可将本课程纳入学生综合素质评价。</p>
+
+<!-- ===== 十六、参考资源 ===== -->
+<h2 id="ch16">十六、参考资源</h2>
+<ol>
+  <li>《普通高中音乐课程标准（2017 年版 2020 年修订）》，中华人民共和国教育部</li>
+  <li>《普通高中信息技术课程标准（2017 年版 2020 年修订）》，中华人民共和国教育部</li>
+  <li>《义务教育艺术课程标准（2022 年版）》，中华人民共和国教育部</li>
+  <li>MIT 21M.383 Computational Music Theory and Analysis, MIT OpenCourseWare</li>
+  <li>music21 官方文档：https://web.mit.edu/music21/doc/</li>
+  <li>Cuthbert, M. S. &amp; Ariza, C. (2010). music21: A Toolkit for Computer-Aided Musicology. <em>Proceedings of ISMIR</em>.</li>
+  <li>Tymoczko, D. (2013). Review of Music21. <em>Music Theory Online</em>, 19(3).</li>
+  <li>Sonic Pi 官方网站：https://sonic-pi.net/</li>
+  <li>Freeman, J. et al. (2019). EarSketch: Engaging Broad Populations in Computing through Music. <em>Communications of the ACM</em>, 62(9).</li>
+  <li>Horn, M. S. et al. (2020). TunePad: Engaging Learners at the Intersection of Music and Code. <em>ICLS 2020</em>.</li>
+  <li>TunePad 官方网站：https://tunepad.com/</li>
+  <li>EarSketch 官方网站：https://earsketch.gatech.edu/</li>
+  <li>Chrome Music Lab：https://musiclab.chromeexperiments.com/</li>
+  <li>Groove Pizza（NYU 音乐体验设计实验室）：https://apps.musedlab.org/groovepizza/</li>
+  <li>《教育强国建设规划纲要（2024-2035 年）》，中共中央、国务院</li>
+  <li>皮亚杰认知发展理论：形式运算阶段特征相关研究</li>
+</ol>
+
+<footer>
+  <div class="sources">
+    <h2>引用来源</h2>
+    <ol>
+      <li id="cite-1">
+        <span class="src-title">教育部，《普通高中音乐课程标准（2017年版2020年修订）》，音乐编创模块内容要求与学业要求。</span>
+        <a class="src-url" href="https://hudong.moe.gov.cn/srcsite/A26/s8001/202006/t20200603_462199.html" target="_blank" rel="noopener">https://hudong.moe.gov.cn/srcsite/A26/s8001/202006/t20200603_462199.html</a>
+      </li>
+      <li id="cite-2">
+        <span class="src-title">教育部，《普通高中信息技术课程标准（2017年版2020年修订）》，必修模块「数据与计算」内容要求。</span>
+        <a class="src-url" href="https://hudong.moe.gov.cn/srcsite/A26/s8001/202006/t20200603_462199.html" target="_blank" rel="noopener">https://hudong.moe.gov.cn/srcsite/A26/s8001/202006/t20200603_462199.html</a>
+      </li>
+      <li id="cite-3">
+        <span class="src-title">MIT 21M.383 Computational Music Theory and Analysis, MIT OpenCourseWare, Spring 2023.</span>
+        <a class="src-url" href="https://ocw.mit.edu/courses/21m-383-computational-music-theory-and-analysis-spring-2023/" target="_blank" rel="noopener">https://ocw.mit.edu/courses/21m-383-computational-music-theory-and-analysis-spring-2023/</a>
+      </li>
+      <li id="cite-4">
+        <span class="src-title">Tymoczko, D. (2013). Review of Music21. <em>Music Theory Online</em>, 19(3).</span>
+        <a class="src-url" href="https://mtosmt.org/issues/mto.13.19.3/mto.13.19.3.tymoczko.pdf" target="_blank" rel="noopener">https://mtosmt.org/issues/mto.13.19.3/mto.13.19.3.tymoczko.pdf</a>
+      </li>
+      <li id="cite-5">
+        <span class="src-title">Sonic Pi 官方网站及 Live Coding Education 研究资料。</span>
+        <a class="src-url" href="https://sonic-pi.net/" target="_blank" rel="noopener">https://sonic-pi.net/</a>
+      </li>
+      <li id="cite-6">
+        <span class="src-title">Freeman, J. et al. (2019). EarSketch: Engaging Broad Populations in Computing through Music. <em>Communications of the ACM</em>, 62(9), 87-89.</span>
+        <a class="src-url" href="https://cacm.acm.org/magazines/2019/9/238972-earsketch/fulltext" target="_blank" rel="noopener">https://cacm.acm.org/magazines/2019/9/238972-earsketch/fulltext</a>
+      </li>
+      <li id="cite-7">
+        <span class="src-title">Horn, M. S. et al. (2020). TunePad: Engaging Learners at the Intersection of Music and Code. <em>Proceedings of ICLS 2020</em>, Northwestern University.</span>
+        <a class="src-url" href="https://tidal.sesp.northwestern.edu/media/files/pubs/TunePad_ICLS_2020.pdf" target="_blank" rel="noopener">https://tidal.sesp.northwestern.edu/media/files/pubs/TunePad_ICLS_2020.pdf</a>
+      </li>
+      <li id="cite-8">
+        <span class="src-title">教育部，《义务教育艺术课程标准（2022年版）》，7-9 年级学业要求。</span>
+        <a class="src-url" href="https://hudong.moe.gov.cn/srcsite/A26/s8001/202204/W020220420582364678888.pdf" target="_blank" rel="noopener">https://hudong.moe.gov.cn/srcsite/A26/s8001/202204/W020220420582364678888.pdf</a>
+      </li>
+      <li id="cite-9">
+        <span class="src-title">Cognitive Development in Adolescence: Piaget's Formal Operational Stage. <em>Lifespan Development</em> (Open Textbook), Concordia University.</span>
+        <a class="src-url" href="https://opentextbooks.concordia.ca/lifespandevelopment/chapter/6-6-cognitive-development-in-adolescence/" target="_blank" rel="noopener">https://opentextbooks.concordia.ca/lifespandevelopment/chapter/6-6-cognitive-development-in-adolescence/</a>
+      </li>
+    </ol>
+  </div>
+</footer>
+
+</div><!-- .content -->
+</main>
+</div><!-- .page -->
+</body>
+</html>
